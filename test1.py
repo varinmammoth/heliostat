@@ -3,8 +3,11 @@ import numpy as np
 import collections
 
 # %%
-def anti_clockwise_rot(a):
+def anti_clockwise_rotxy(a):
     return np.array([[np.cos(a), -np.sin(a), 0], [np.sin(a), np.cos(a), 0], [0,0,1]])
+
+def anti_clockwise_rotxz(a):
+    return np.array([[np.cos(a), 0, np.sin(a)], [0, 1, 0], [-np.sin(a),0,np.cos(a)]])
 
 def get_phi_hat(phi):
     """Gets the phi hat unit vector.
@@ -16,7 +19,7 @@ def get_phi_hat(phi):
         float: Phi hat unit vector.
     """
     return np.array([-np.sin(phi), np.cos(phi), 0])
-# %%
+
 class ray():
     def __init__(self, p, a):
         """Creates a ray
@@ -52,8 +55,8 @@ class mirror():
         Returns:
             array: [R, phi, n1, n2, n3, a, b]: All information about the mirror.
         """
-        self.n1 = anti_clockwise_rot(alpha)@get_phi_hat(phi)
-        self.n3 = anti_clockwise_rot(beta)@np.array([0,0,1])
+        self.n1 = anti_clockwise_rotxy(alpha)@get_phi_hat(phi)
+        self.n3 = anti_clockwise_rotxz(beta)@np.array([0,0,1])
         self.n2 = np.cross(self.n1, self.n3)
         self.C = np.array([R, phi, h])
         self.a = a
@@ -87,17 +90,22 @@ class playground():
             ray.s0_ls = collections.OrderedDict(sorted(ray.s0_ls.items()))
             for s0 in ray.s0_ls:
                 if s0 >= 0:
-                    r0 = ray.p + s0*ray.a
-                    mirror = self.mirrors[self.rays_ls[s0]]
+                    # r0 = ray.p + s0*ray.a
+                    r0 = ray.p + ray.a
+                    mirror = self.mirrors[ray.s0_ls[s0]]
                     if np.abs(np.dot(r0-mirror.C, mirror.n1)) <= mirror.a/2 and np.abs(np.dot(r0-mirror.C, mirror.n2)) <= mirror.b/2:
                         ray.p = r0
                         ray.a = ray.a - 2*np.dot(ray.a, mirror.n3)*mirror.n3
+                        print('yes')
         return
 #%%
 test_playground = playground()
-test_playground.add_rect_mirror(5,0,0,5,5)
-test_playground.add_ray([-100,0,0])
-test_playground.propagate_rays()
+test_playground.add_rect_mirror(5,0,0,0,np.pi/4,5,5)
+test_playground.add_ray([-100,0,0], [1,0,0])
+test_playground.get_intersections()
+# test_playground.propagate_rays()
+# test_playground.get_intersections()
+# test_playground.propagate_rays()
 
 
 
