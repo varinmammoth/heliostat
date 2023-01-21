@@ -87,31 +87,10 @@ start3 = np.array([5,-2,0])
 start4 = np.array([5,-4,0])
 
 test_playground = playground()
-test_playground.add_rect_mirror(*start1, np.pi/4,0,5,5)
-test_playground.add_rect_mirror(*start2, np.pi/4,0,5,5)
-test_playground.add_rect_mirror(*start3, np.pi/4,0,5,5)
-test_playground.add_rect_mirror(*start4, np.pi/4,0,5,5)
+test_playground.add_rect_mirror(*start1, 0,0,5,5)
+test_playground.add_rect_mirror(*start2, 0,0,5,5)
+test_playground.add_rect_mirror(*start3, 0,0,5,5)
+test_playground.add_rect_mirror(*start4, 0,0,5,5)
 
-end1 = test_playground.mirrors[0].n3 + start1
-end2 = test_playground.mirrors[1].n3 + start2
-end3 = test_playground.mirrors[2].n3 + start3
-end4 = test_playground.mirrors[3].n3 + start4
-
-vector1 = np.append(start1, end1)
-vector2 = np.append(start2, end2)
-vector3 = np.append(start3, end3)
-vector4 = np.append(start4, end4)
-
-# %%
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import numpy as np
-
-soa = np.array([vector1, vector2, vector3, vector4])
-
-X, Y, Z, U, V, W = zip(*soa)
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.quiver(X, Y, Z, U, V, W)
-plt.show()
+#
 # %%
