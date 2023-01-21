@@ -1,24 +1,21 @@
 #%%
 import numpy as np
 import collections
-
 # %%
 def anti_clockwise_rotxy(a):
-    return np.array([[np.cos(a), -np.sin(a), 0], [np.sin(a), np.cos(a), 0], [0,0,1]])
+    return np.array([[np.cos(a), np.sin(a), 0], [-np.sin(a), np.cos(a), 0], [0,0,1]])
 
-def anti_clockwise_rotxz(a):
-    return np.array([[np.cos(a), 0, np.sin(a)], [0, 1, 0], [-np.sin(a),0,np.cos(a)]])
-
-def get_phi_hat(phi):
-    """Gets the phi hat unit vector.
-
-    Args:
-        phi (float): The angle phi between x axis and R_hat.
-
-    Returns:
-        float: Phi hat unit vector.
+def rot(beta, gamma):
     """
-    return np.array([-np.sin(phi), np.cos(phi), 0])
+    beta = rotation around y axis
+    gamma = rotation around x axis
+    """
+    cb = np.cos(beta)
+    sb = -np.sin(beta)
+    cg = np.cos(gamma)
+    sg = -np.sin(gamma)
+
+    return np.array([[cb, sb*sg, sb*cg], [0, cg, -sg], [-sb, cb*sg, cb*cg]])
 
 class ray():
     def __init__(self, p, a):
@@ -39,26 +36,11 @@ class ray():
         return
 
 class mirror():
-    def __init__ (self, R, phi, h, alpha, beta, a, b):
-        """The user specifies the position of the mirror through R and phi.
-        The user specifies the orientation of the mirror through alpha and beta.
-        The user specifices the boundaries of the mirror through as and b.
-
-        Args:
-            R (float): R vector.
-            phi (float): phi angle
-            alpha (float): alpha angle
-            beta (float): beta angle
-            a (float): length in xy direction
-            b (float): length in the other direction
-
-        Returns:
-            array: [R, phi, n1, n2, n3, a, b]: All information about the mirror.
-        """
-        self.n1 = anti_clockwise_rotxy(alpha)@get_phi_hat(phi)
-        self.n3 = anti_clockwise_rotxz(beta)@np.array([0,0,1])
-        self.n2 = np.cross(self.n1, self.n3)
-        self.C = np.array([R, phi, h])
+    def __init__ (self, x, y, z, alpha, beta, a, b):
+        self.n1 = rot(alpha, beta)@np.array([1,0,0])
+        self.n2 = rot(alpha, beta)@np.array([0,1,0])
+        self.n3 = rot(alpha, beta)@np.array([0,0,1])
+        self.C = np.array([x, y, z])
         self.a = a
         self.b = b
         return
@@ -68,8 +50,8 @@ class playground():
         self.mirrors = []
         self.rays = []
 
-    def add_rect_mirror(self, R, phi, h, alpha, beta, a, b):
-        self.mirrors.append(mirror(R, phi, h, alpha, beta, a, b))
+    def add_rect_mirror(self, x, y, z, beta, gamma, a, b):
+        self.mirrors.append(mirror(x, y, z, beta, gamma, a, b))
         return
 
     def add_ray(self, p, a):
@@ -99,19 +81,37 @@ class playground():
                         print('yes')
         return
 #%%
+start1 = np.array([5,2,0])
+start2 = np.array([5,4,0])
+start3 = np.array([5,-2,0])
+start4 = np.array([5,-4,0])
+
 test_playground = playground()
-test_playground.add_rect_mirror(5,0,0,0,np.pi/4,5,5)
-test_playground.add_ray([-100,0,0], [1,0,0])
-test_playground.get_intersections()
-# test_playground.propagate_rays()
-# test_playground.get_intersections()
-# test_playground.propagate_rays()
+test_playground.add_rect_mirror(*start1, np.pi/4,0,5,5)
+test_playground.add_rect_mirror(*start2, np.pi/4,0,5,5)
+test_playground.add_rect_mirror(*start3, np.pi/4,0,5,5)
+test_playground.add_rect_mirror(*start4, np.pi/4,0,5,5)
 
+end1 = test_playground.mirrors[0].n3 + start1
+end2 = test_playground.mirrors[1].n3 + start2
+end3 = test_playground.mirrors[2].n3 + start3
+end4 = test_playground.mirrors[3].n3 + start4
 
+vector1 = np.append(start1, end1)
+vector2 = np.append(start2, end2)
+vector3 = np.append(start3, end3)
+vector4 = np.append(start4, end4)
 
-    
+# %%
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
 
-    
+soa = np.array([vector1, vector2, vector3, vector4])
 
-    
+X, Y, Z, U, V, W = zip(*soa)
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.quiver(X, Y, Z, U, V, W)
+plt.show()
 # %%
