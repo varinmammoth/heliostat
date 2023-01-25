@@ -2,7 +2,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import collections
-from tqdm import tqdm
+import sys
+print(sys.version, sys.platform, sys.executable)
 # %%
 def anti_clockwise_rotxy(a):
     return np.array([[np.cos(a), np.sin(a), 0], [-np.sin(a), np.cos(a), 0], [0,0,1]])
@@ -108,7 +109,7 @@ class playground():
         if N != 'not-specified':
             print(f'Simulating for {N} iterations. N_rays = {len(self.rays)}. N_mirrors = {len(self.mirrors)}.')
             print(f'Total number of calculations is O({N*len(self.rays)*len(self.mirrors)}.)')
-            for i in tqdm(range(0, N)):
+            for i in (range(0, N)):
                 self.get_intersections()
                 self.propagate_rays()
             self.final_propogation()
@@ -222,4 +223,17 @@ for i in y:
 
 test_playground2.simulate(1000)
 test_playground2.display(xlim=[-5,8], ylim=[-5,5], zlim=[0,20])
+
+test_playground3 = playground()
+#x, y, z, beta, gamma, a, b
+test_playground3.add_ray([0, 0, 0], [0,1,0])
+test_playground3.add_rect_mirror(0, 10, 0, 0, -np.pi/4, 1, 1)
+test_playground3.add_rect_mirror(0, 10, 10, np.pi/4, 0, 1, 1)
+test_playground3.add_rect_mirror(10, 10, 10, np.pi/4, 0, 1, 1)
+test_playground3.add_ray([10, 10, 10], [(-10/np.sqrt(3*10**2)),(-10/np.sqrt(3*10**2)),(-10/np.sqrt(3*10**2))])
+
+
+test_playground3.simulate(10)
+test_playground3.display()
+
 # %%
