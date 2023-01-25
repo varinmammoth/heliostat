@@ -157,6 +157,19 @@ class playground():
         #                 z_ls.append(z)
 
         #     ax.plot(x, y, z, color='b')
+
+        #display mirror normals;
+        for mirror in self.mirrors:
+            x = []
+            y = []
+            z = []
+            x.append(mirror.C[0])
+            y.append(mirror.C[1])
+            z.append(mirror.C[2])
+            x.append(x[-1] + mirror.n3[0])
+            y.append(y[-1] + mirror.n3[1])
+            z.append(z[-1] + mirror.n3[2])
+            ax.plot(x, y, z, color='black')
         plt.show()
         return
 #%%
@@ -198,7 +211,7 @@ test_playground.simulate(5)
 test_playground.display()
 # %%
 test_playground2 = playground()
-test_playground2.add_rect_mirror(0, 0, 0, np.pi/6, 0, 1000, 1000)
+test_playground2.add_rect_mirror(0, 0, 0, 0, 0, 3, 3)
 # test_playground2.add_rect_mirror(0, 0, 21, 0, 0, 1000, 1000)
 
 x = np.arange(-3, 3, 1)
