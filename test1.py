@@ -137,26 +137,23 @@ class playground():
             ax.plot(x, y, z, color='r')
 
         # #display mirrors
-        # for mirror in self.mirrors:
-        #     x_ls = []
-        #     y_ls = []
-        #     z_ls = []
-
-        #     x = np.linspace(mirror.C[0] - mirror.a, mirror.C[0] + mirror.a, 100)
-        #     y = np.linspace(mirror.C[1] - mirror.b, mirror.C[1] + mirror.b, 100)
-            
-        #     d = np.dot(mirror.n3, mirror.C)
-
-        #     for i in x:
-        #         for j in y: 
-        #             z = (d - mirror.C[0]*mirror.n2[0] - mirror.C[1]*mirror.n3[1])/mirror.n3[2]
-        #             r0 = np.array([x,y,z])
-        #             if np.abs(np.dot(r0-mirror.C, mirror.n1)) <= mirror.a/2 and np.abs(np.dot(r0-mirror.C, mirror.n2)) <= mirror.b/2:
-        #                 x_ls.append(x)
-        #                 y_ls.append(y)
-        #                 z_ls.append(z)
-
-        #     ax.plot(x, y, z, color='b')
+        for mirror in self.mirrors:
+            P = mirror.C - (mirror.a/2)*mirror.n1 - (mirror.b/2)*mirror.n2
+            dy = np.linspace(0, mirror.b, 100)
+            x = []
+            y = []
+            z = []
+            Pi = P
+            for i in dy:
+                Pi = P + i*mirror.n2
+                x.append(Pi[0])
+                y.append(Pi[1])
+                z.append(Pi[2])
+                vector_end = Pi + mirror.a*mirror.n1
+                x.append(vector_end[0])
+                y.append(vector_end[1])
+                z.append(vector_end[2])
+                ax.plot(x, y, z, color='blue')
 
         #display mirror normals;
         for mirror in self.mirrors:
@@ -179,7 +176,7 @@ start3 = np.array([1,-2,0])
 start4 = np.array([3,-4,0])
 
 test_playground = playground()
-test_playground.add_rect_mirror(*start1, np.pi/4, 0,1,1)
+test_playground.add_rect_mirror(*start1, np.pi/4, 0,2,2)
 # test_playground.add_rect_mirror(*start2, np.pi/4,0,1,1)
 # test_playground.add_rect_mirror(*start3, np.pi/4,0,1,1)
 # test_playground.add_rect_mirror(*start4, np.pi/4,0,1,1)
@@ -189,16 +186,16 @@ start1 = np.array([1,2,5])
 # start3 = np.array([1,-2,5])
 # start4 = np.array([3,-4,5])
 
-test_playground.add_rect_mirror(*start1, np.pi/4, 0,1,1)
+test_playground.add_rect_mirror(*start1, np.pi/4, 0,2,2)
 # test_playground.add_rect_mirror(*start2, np.pi/4,0,1,1)
 # test_playground.add_rect_mirror(*start3, np.pi/4,0,1,1)
 # test_playground.add_rect_mirror(*start4, np.pi/4,0,1,1)
 
 start1 = [5,2,5]
-test_playground.add_rect_mirror(*start1, np.pi/4, 0,1,1)
+test_playground.add_rect_mirror(*start1, np.pi/4, 0,5,5)
 
 start1 = [5,2,10]
-test_playground.add_rect_mirror(*start1, -np.pi/4, 0,1,1)
+test_playground.add_rect_mirror(*start1, -np.pi/4, 0,4,4)
 
 test_playground.add_ray([-10, 2, 0], [1,0,0])
 # test_playground.add_ray([-10, 4, 0], [1,0,0])
