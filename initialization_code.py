@@ -54,3 +54,23 @@ test_playground2.simulate(500)
 %matplotlib ipympl
 test_playground2.display(show_mirrors=True, show_mirror_normals=True)
 # %%
+#Test add receiver
+test_playground3 = playground()
+test_playground3.add_cubic_receiver([0,0,5], 20, 20, 1)
+test_playground3.add_rect_mirror(0,0,0,np.pi/7,0,45,45,'mirror')
+initialize_rays_parallel(test_playground3, [-20,20], [-20,20], 20, 0, 0)
+test_playground3.simulate()
+%matplotlib ipympl
+test_playground3.display(show_mirrors=True, show_mirror_normals=True)
+print(test_playground3.get_receiver_power())
+#%%
+test_playground4 = playground()
+test_playground4.add_cubic_receiver([0,0,0], 1, 1, 1)
+test_playground4.add_ray([-10,0,0],[1,0,0])
+test_playground4.add_ray([-10,0,0.25],[1,0,0])
+test_playground4.add_ray([-10,0,3],[1,0,0])
+test_playground4.simulate()
+%matplotlib ipympl
+test_playground4.display()
+print(test_playground4.get_receiver_power())
+# %%

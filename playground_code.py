@@ -47,11 +47,19 @@ class mirror():
         self.a = a
         self.b = b
         self.ray_count = 0
+        self.isReceiver = False
+        self.isGround = False
 
         if mirror_type == 'mirror':
             self.mirror_type = 'mirror'
         elif mirror_type == 'absorber':
             self.mirror_type = 'absorber'
+        elif mirror_type =='receiver':
+            self.mirror_type = 'absorber'
+            self.isReceiver = True
+        elif mirror_type == 'ground':
+            self.mirror_type = 'absorber'
+            self.isGround = True
 
         return
 
@@ -71,6 +79,15 @@ class playground():
         self.rays.append(ray(p, a))
         self.num_rays += 1
         return
+
+    def add_cubic_receiver(self, p, l=5, w=5, h=5):
+        x, y, z = p
+        self.add_rect_mirror(x-l/2, y, z, -np.pi/2, np.pi, h, w, 'receiver')
+        self.add_rect_mirror(x, y-w/2, z, np.pi/2, -np.pi/2, h, l, 'receiver')
+        self.add_rect_mirror(x+l/2, y, z, np.pi/2, -np.pi, h, w, 'receiver')
+        self.add_rect_mirror(x, y+w/2, z, np.pi/2, np.pi/2, h, l, 'receiver')
+        self.add_rect_mirror(x, y, z-h/2, np.pi, 0, l, w, 'receiver')
+        self.add_rect_mirror(x, y, z+h/2, 0, 0, l, w, 'receiver')
 
     def get_intersections(self):
         for ray in self.rays:
@@ -147,22 +164,23 @@ class playground():
         # #display mirrors
         if show_mirrors == True:
             for mirror in self.mirrors:
-                P = mirror.C - (mirror.a/2)*mirror.n1 - (mirror.b/2)*mirror.n2
-                dy = np.linspace(0, mirror.b, 100)
-                x = []
-                y = []
-                z = []
-                Pi = P
-                for i in dy:
-                    Pi = P + i*mirror.n2
-                    x.append(Pi[0])
-                    y.append(Pi[1])
-                    z.append(Pi[2])
-                    vector_end = Pi + mirror.a*mirror.n1
-                    x.append(vector_end[0])
-                    y.append(vector_end[1])
-                    z.append(vector_end[2])
-                    ax.plot(x, y, z, color='blue')
+                if mirror.isGround == False:
+                    P = mirror.C - (mirror.a/2)*mirror.n1 - (mirror.b/2)*mirror.n2
+                    dy = np.linspace(0, mirror.b, 100)
+                    x = []
+                    y = []
+                    z = []
+                    Pi = P
+                    for i in dy:
+                        Pi = P + i*mirror.n2
+                        x.append(Pi[0])
+                        y.append(Pi[1])
+                        z.append(Pi[2])
+                        vector_end = Pi + mirror.a*mirror.n1
+                        x.append(vector_end[0])
+                        y.append(vector_end[1])
+                        z.append(vector_end[2])
+                        ax.plot(x, y, z, color='blue')
 
         #display mirror normals
         if show_mirror_normals == True:
@@ -192,4 +210,12 @@ class playground():
 
         plt.show()
         return
+
+    def get_receiver_power(self):
+        rays_received = 0
+        for mirror in self.mirrors:
+            if mirror.isReceiver == True:
+                rays_received += mirror.ray_count
+        return rays_received
 #%%
+# %%
