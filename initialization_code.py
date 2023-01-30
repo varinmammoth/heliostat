@@ -5,6 +5,16 @@ from playground_code import playground
 from playground_code import rot
 # %%
 def initialize_rays(playground, xlim=[-10,10], ylim=[-10,10], ray_density = 10, start=[100,100,100]):
+    """Initializes rays that originate from a single point. The rays will end up on the ground
+    at the coordinates (x,y), where (x,y) are equally spaced points in the range xlim and ylim.
+
+    Args:
+        playground (playground obj): Playground object
+        xlim (list, optional): x range of ray endpoints on the ground. Defaults to [-10,10].
+        ylim (list, optional): y range of ray endpoints on the ground. Defaults to [-10,10].
+        ray_density (int, optional): Ray density. e.g. 10 means there will be 10*10 rays in total. Defaults to 10.
+        start (list, optional): Starting point of all rays. Defaults to [100,100,100].
+    """
     start = np.array(start)
     
     x = np.linspace(*xlim, ray_density)
@@ -21,6 +31,18 @@ def initialize_rays(playground, xlim=[-10,10], ylim=[-10,10], ray_density = 10, 
     return
 
 def initialize_rays_parallel(playground, xlim=[-10,10], ylim=[-10,10], ray_density = 10, beta=np.pi/4, gamma=np.pi/4):
+    """Initializes paralle rays that end up on coordinates (x,y) on the ground, where (x,y) is
+    same as above function. The rays follow along the z_hat vector rotated by beta and gamma,
+    where beta and gamma are defined using the convention of this project.
+
+    Args:
+        playground (playgound obj): Playground object
+        xlim (list, optional): x range. Defaults to [-10,10].
+        ylim (list, optional): y ragne. Defaults to [-10,10].
+        ray_density (int, optional): Ray density. Defaults to 10.
+        beta (float, optional): Beta angle of ray direction. Defaults to np.pi/4.
+        gamma (float, optional): Gamma angle of ray direction. Defaults to np.pi/4.
+    """
     x = np.linspace(*xlim, ray_density)
     y = np.linspace(*ylim, ray_density)
     x, y = np.meshgrid(x, y)

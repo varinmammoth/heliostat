@@ -40,6 +40,23 @@ class ray():
 
 class mirror():
     def __init__ (self, x, y, z, alpha, beta, a, b, mirror_type='mirror'):
+        """A mirror object.
+
+        Args:
+            x (float): x coordinate of mirror center
+            y (float): y coordinate of mirror center
+            z (float): z coordinate of mirror center
+            alpha (float): actually beta angle, gotta fix naming convention
+            beta (float): actually gamma angle, gotta fix naming convention
+            a (float): length of mirror along n1
+            b (float): length of mirror along n2
+            mirror_type (str, optional): Mirror type. Can be "mirror", "absorber", "receiver", "ground". 
+                                        "mirror" reflects.
+                                        "absorber" absorbs.
+                                        "receiver" absorbs, and adds to the total power extracted by the system.
+                                        "ground" absorbs, but is not plotted during display.
+                                        Defaults to 'mirror'.
+        """
         self.n1 = rot(alpha, beta)@np.array([1,0,0])
         self.n2 = rot(alpha, beta)@np.array([0,1,0])
         self.n3 = rot(alpha, beta)@np.array([0,0,1])
@@ -81,6 +98,7 @@ class playground():
         return
 
     def add_cubic_receiver(self, p, l=5, w=5, h=5):
+        #See convention in notes.
         x, y, z = p
         self.add_rect_mirror(x-l/2, y, z, -np.pi/2, np.pi, h, w, 'receiver')
         self.add_rect_mirror(x, y-w/2, z, np.pi/2, -np.pi/2, h, l, 'receiver')
@@ -212,6 +230,7 @@ class playground():
         return
 
     def get_receiver_power(self):
+        #Returns the total number of rays absorbed by the receiver.
         rays_received = 0
         for mirror in self.mirrors:
             if mirror.isReceiver == True:
