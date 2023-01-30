@@ -220,3 +220,17 @@ for i in y:
 test_playground2.simulate(1000)
 test_playground2.display(xlim=[-5,8], ylim=[-5,5], zlim=[0,20])
 # %%
+test = playground()
+for i in range(-7,7):
+    for j in range(-7,7):
+        test.add_rect_mirror(2*i,2*j,0,np.pi/4,0,1,1)
+
+for i in range(-7,7):
+    test.add_ray([-20,i,0], [1,0,0])
+
+test.simulate(100)
+#%%
+``
+test.display()
+
+# %%
