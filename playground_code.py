@@ -37,6 +37,7 @@ class ray():
         self.history = [self.p]
         self.a_history = [self.a]
         self.absorbed = False #this is set to True when the ray no longer intersects any mirros
+        self.finished = False
         return
 
 class mirror():
@@ -61,7 +62,8 @@ class playground():
         self.mirrors = []
         self.rays = []
 
-        self.absorbed_rays = 0
+        self.num_rays = 0
+        self.finished_and_absorbed_rays = 0
 
     def add_rect_mirror(self, x, y, z, beta, gamma, a, b, mirror_type='mirror'):
         self.mirrors.append(mirror(x, y, z, beta, gamma, a, b, mirror_type))
@@ -69,6 +71,7 @@ class playground():
 
     def add_ray(self, p, a):
         self.rays.append(ray(p, a))
+        self.num_rays += 1
         return
 
     def get_intersections(self):
@@ -84,7 +87,7 @@ class playground():
 
     def propagate_rays(self):
         for ray in self.rays:
-            if ray.absorbed == False:
+            if ray.absorbed == False and ray.finished == False:
                 got_intersection = False
                 ray.s0_ls = collections.OrderedDict(sorted(ray.s0_ls.items()))
                 for s0 in ray.s0_ls:
@@ -104,13 +107,15 @@ class playground():
 
                                 if mirror.mirror_type == 'absorber':
                                     ray.absorbed = True
+                                    self.finished_and_absorbed_rays += 1
+
                                 break
                         if got_intersection == True:
                             break
-            
-            # if got_intersection == False:
-            #     ray.absorbed == True
-            #     self.absorbed_rays += 1
+                if got_intersection == False:
+                    ray.finished = True
+                    self.finished_and_absorbed_rays += 1
+
         return
 
     def final_propogation(self):
@@ -128,10 +133,11 @@ class playground():
                 self.propagate_rays()
             self.final_propogation()
         else:
-            print('N is not specified. Please specify N.')
-            # while self.finished_rays != len(self.rays):
-            #     self.get_intersections()
-            #     self.propagate_rays()
+            print('N is not specified. Simulating until all rays are either absorbed or no longer intersect.')
+            while self.finished_and_absorbed_rays != self.num_rays:
+                self.get_intersections()
+                self.propagate_rays()
+            self.final_propogation()
 
     def display(self, xlim=[-15,15], ylim=[-15,15], zlim=[-15,15], show_rays=True, show_mirrors=True, show_mirror_normals=True):
         fig = plt.figure()
