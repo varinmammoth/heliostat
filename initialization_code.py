@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from playground_code import playground 
 from playground_code import rot_vector
-from pysolar.solar import *
 import datetime as dt
 
 from skyfield import api
@@ -69,6 +68,22 @@ def initialize_rays_parallel(playground, xlim=[-10,10], ylim=[-10,10], ray_densi
     return 
 
 def initialize_rays_parallel_plane(playground, ray_density = 10, center=[0,0,0], a=15, b=15, phi=0, theta=0):
+    """Initialise parrallel rays that are equally spaced on a plane. The plane has the normal vector
+    defined by the azimutal and elevation angle (same as solar convention). It has dimensions a and b
+    along the n1 and n2 directions respectively, initially with the n1 direction along the y-axis and n2 along
+    the z-axis.
+
+    Preferably, should choose a = b so that rays are uniformly distributed across the plane.
+
+    Args:
+        playground (obj): Playground object
+        ray_density (int, optional): Total number of rays = ray_density^2. Defaults to 10.
+        center (list, optional): Center of the plane. Defaults to [0,0,0].
+        a (int, optional): Dimension of plane along n1. Defaults to 15.
+        b (int, optional): Dimension of plane along n2. Defaults to 15.
+        phi (float, optional): Azimutal angle. Defaults to 0.
+        theta (float, optional): Elevation angle. Defaults to 0.
+    """
     center = np.array(center)
     
     #Azimutal 
@@ -98,6 +113,20 @@ def initialize_rays_parallel_plane(playground, ray_density = 10, center=[0,0,0],
     return
 
 def get_solar_positions(date, lat='48.324777 N', long='11.405610 E', elevation=0, N_datapoints=12):
+    """Gets the azimutal and elevation angle of the sun at a particuliar lat, long, and elevation for
+    a given date. N_datapoints are given, with the points equally spaced in time between the sunrise and 
+    sunset times on that date.
+
+    Args:
+        date (datetime): Date.
+        lat (str, optional): Latitude. Defaults to '48.324777 N'.
+        long (str, optional): Longtitudww. Defaults to '11.405610 E'.
+        elevation (float, optional): Elevation. Defaults to 0.
+        N_datapoints (int, optional): Number of equally spaced (in time) values. Defaults to 12.
+
+    Returns:
+        tuple: Tuple of np.arrays. Time in datetime format, time after sunrise, azimutal angle at that time, elevation angle at that time.
+    """
     start = date - 1
     end = date + 1
     location = api.Topos(lat, long, elevation_m=elevation)
@@ -142,6 +171,56 @@ def get_solar_positions(date, lat='48.324777 N', long='11.405610 E', elevation=0
         t_since_sunrise.append((t_ls[i]-t_ls[0]).total_seconds())
 
     return np.array(t_ls), np.array(t_since_sunrise), np.array(phi), np.array(theta)
-# %%
 
+def initialise_mirrors(playground, position_ls, a, b, receiver_position, phi, theta, mirror_type='mirror'):
+    position_ls = np.array(position_ls)
+    receiver_position = np.array(receiver_position)
+
+    for i in range (0, len(position_ls)):
+        #Original vectors for mirror. n3 points to the sun.
+        #Azimutal
+        n3 = np.array([np.cos(phi), -np.sin(phi), 0])
+        n1 = np.array([np.sin(phi), np.cos(phi), 0])
+
+
+        #Elevation
+        n3 = rot_vector(n3, -n1, theta)
+    
+
+       
+
+        # The vector x that points from mirror center to receiver
+        x = receiver_position - position_ls[i]
+        x = x/np.linalg.norm(x)
+        # #The cross product of n3 and x
+        N = np.cross(n3, x)
+        # #The angle alpha between n3 and x
+        alpha = np.arccos(np.dot(n3, x))
+        
+        # #Now, apply Rodriguez's formula to rotate n3 by amount alpha/2 towards the reciever,
+        # # ie. rotate about N in clockwise fashion    
+        n3 = rot_vector(n3, N, alpha/2)
+
+        #Check for Nan due to n3 having 0 x-component
+        #if n3[0], add a small number to it.
+        if n3[0] == 0:
+            n3[0] += 1e-5
+        
+        # Get azimutal and elevation for n3 vector
+        # This is done using usual spherical coordinates.
+        # But we must care about the convention
+        n3_theta = np.pi/2 - np.arctan(np.sqrt(n3[0]**2 + n3[1]**2)/n3[2])
+        n3_phi = -np.arctan(n3[1]/n3[0])
+
+        #Now, add the mirror with these mirrors to playground
+        playground.add_rect_mirror(*position_ls[i], n3_phi, n3_theta, a, b, mirror_type=mirror_type)
+
+    return
+# %%
+test_playground = playground()
+position_ls = [[10,0,0], [20,0,0], [-10,0,0], [-20,0,0]]
+initialise_mirrors(test_playground, position_ls, 2, 2, [0,0,10], 0, np.pi/4)
+test_playground.add_cubic_receiver([0,0,10], 1,1,1)
+%matplotlib ipympl
+test_playground.display()
 # %%
