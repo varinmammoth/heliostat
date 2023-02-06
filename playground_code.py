@@ -3,21 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import collections
 from tqdm import tqdm
+
 # %%
-def anti_clockwise_rotxy(a):
-    return np.array([[np.cos(a), np.sin(a), 0], [-np.sin(a), np.cos(a), 0], [0,0,1]])
-
-def rot(beta, gamma):
-    """
-    beta = rotation around y axis
-    gamma = rotation around x axis
-    """
-    cb = np.cos(beta)
-    sb = -np.sin(beta)
-    cg = np.cos(gamma)
-    sg = -np.sin(gamma)
-
-    return np.array([[cb, sb*sg, sb*cg], [0, cg, -sg], [-sb, cb*sg, cb*cg]])
+def rot_vector(v, k, theta):
+    return np.cos(theta)*v + np.cross(k, v)*np.sin(theta) + k*np.dot(k, v)*(1-np.cos(theta))
 
 class ray():
     def __init__(self, p, a):
@@ -39,7 +28,7 @@ class ray():
         return
 
 class mirror():
-    def __init__ (self, x, y, z, alpha, beta, a, b, mirror_type='mirror'):
+    def __init__ (self, x, y, z, phi, theta, a, b, mirror_type='mirror'):
         """A mirror object.
 
         Args:
@@ -57,9 +46,19 @@ class mirror():
                                         "ground" absorbs, but is not plotted during display.
                                         Defaults to 'mirror'.
         """
-        self.n1 = rot(alpha, beta)@np.array([1,0,0])
-        self.n2 = rot(alpha, beta)@np.array([0,1,0])
-        self.n3 = rot(alpha, beta)@np.array([0,0,1])
+        #Azimutal 
+        n3 = np.array([np.cos(phi), -np.sin(phi), 0])
+        n1 = np.array([np.sin(phi), np.cos(phi), 0])
+        n2 = np.array([0,0,1])
+
+        #Elevation
+        n2 = rot_vector(n2, -n1, theta)
+        n3 = rot_vector(n3, -n1, theta)
+
+        self.n1 = n1
+        self.n2 = n2
+        self.n3 = n3
+
         self.C = np.array([x, y, z])
         self.a = a
         self.b = b
@@ -100,12 +99,12 @@ class playground():
     def add_cubic_receiver(self, p, l=5, w=5, h=5):
         #See convention in notes.
         x, y, z = p
-        self.add_rect_mirror(x-l/2, y, z, -np.pi/2, np.pi, h, w, 'receiver')
-        self.add_rect_mirror(x, y-w/2, z, np.pi/2, -np.pi/2, h, l, 'receiver')
-        self.add_rect_mirror(x+l/2, y, z, np.pi/2, -np.pi, h, w, 'receiver')
-        self.add_rect_mirror(x, y+w/2, z, np.pi/2, np.pi/2, h, l, 'receiver')
-        self.add_rect_mirror(x, y, z-h/2, np.pi, 0, l, w, 'receiver')
-        self.add_rect_mirror(x, y, z+h/2, 0, 0, l, w, 'receiver')
+        self.add_rect_mirror(x+w/2, y, z, 0, 0, l, h, 'receiver')
+        self.add_rect_mirror(x-w/2, y, z, 0, np.pi, l, h, 'receiver')
+        self.add_rect_mirror(x, y, z+h/2, 0, np.pi/2, l, w, 'receiver')
+        self.add_rect_mirror(x, y, z-h/2, 0, -np.pi/2, l, w, 'receiver')
+        self.add_rect_mirror(x, y+l/2, z, -np.pi/2, 0, w, h, 'receiver')
+        self.add_rect_mirror(x, y-l/2, z, np.pi/2, 0, w, h, 'receiver')
 
     def get_intersections(self):
         for ray in self.rays:
@@ -226,6 +225,9 @@ class playground():
                     z.append(point[2])
                 ax.plot(x, y, z, color='r')
 
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
         plt.show()
         return
 
