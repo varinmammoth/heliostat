@@ -87,8 +87,8 @@ class playground():
         self.num_rays = 0
         self.finished_and_absorbed_rays = 0
 
-    def add_rect_mirror(self, x, y, z, beta, gamma, a, b, mirror_type='mirror'):
-        self.mirrors.append(mirror(x, y, z, beta, gamma, a, b, mirror_type))
+    def add_rect_mirror(self, x, y, z, phi, theta, a, b, mirror_type='mirror'):
+        self.mirrors.append(mirror(x, y, z, phi, theta, a, b, mirror_type))
         return
 
     def add_ray(self, p, a):
@@ -158,8 +158,8 @@ class playground():
 
     def simulate(self, N='not-specified'):
         if N != 'not-specified':
-            print(f'Simulating for {N} iterations. N_rays = {len(self.rays)}. N_mirrors = {len(self.mirrors)}.')
-            print(f'Total number of calculations is O({N*len(self.rays)*len(self.mirrors)}.)')
+            # print(f'Simulating for {N} iterations. N_rays = {len(self.rays)}. N_mirrors = {len(self.mirrors)}.')
+            # print(f'Total number of calculations is O({N*len(self.rays)*len(self.mirrors)}.)')
             for i in tqdm(range(0, N)):
                 self.get_intersections()
                 self.propagate_rays()

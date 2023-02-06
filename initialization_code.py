@@ -3,6 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from playground_code import playground 
 from playground_code import rot_vector
+from pysolar.solar import *
+import datetime as dt
+
+from skyfield import api
+ts = api.load.timescale()
+eph = api.load('de421.bsp')
+from skyfield import almanac
 # %%
 def initialize_rays(playground, xlim=[-10,10], ylim=[-10,10], ray_density = 10, start=[100,100,100]):
     """Initializes rays that originate from a single point. The rays will end up on the ground
@@ -88,58 +95,53 @@ def initialize_rays_parallel_plane(playground, ray_density = 10, center=[0,0,0],
             playground.add_ray(start, -n3)
 
     # playground.add_rect_mirror(*center, phi, theta, a, b, 'absorber')
-
     return
-# %%
-#Test the initialize ray function
-test_playground = playground()
-initialize_rays(test_playground, [-15,15], [-15,15], 10, start=[0,0,50])
-# test_playground.add_rect_mirror(0,0,-10,np.pi/3,np.pi/4,25,15,'mirror')
-test_playground.add_rect_mirror(0,0,0,np.pi/4,np.pi/4,15,15,'mirror')
-test_playground.simulate()
-%matplotlib ipympl
-test_playground.display(show_mirrors=True, show_mirror_normals=True)
-# %%
-#Test the initialize ray parallel function
-test_playground2 = playground()
-initialize_rays_parallel(test_playground2, [-15,15], [-15,15], 10, 0, np.pi/2)
-test_playground2.add_rect_mirror(0,0,0,0,np.pi/4,15,15,'mirror')
-test_playground2.simulate()
-%matplotlib ipympl
-test_playground2.display(show_mirrors=True, show_mirror_normals=True)
-# %%
-#Test add receiver
-test_playground3 = playground()
-test_playground3.add_cubic_receiver([0,0,5], 5, 5, 10)
-# test_playground3.add_rect_mirror(0,0,0,np.pi/7,0,45,45,'mirror')
-initialize_rays_parallel(test_playground3, [-20,20], [-20,20], 20, 0, np.pi/4)
-test_playground3.simulate()
-%matplotlib ipympl
-test_playground3.display(show_mirrors=True, show_mirror_normals=True)
-print(test_playground3.get_receiver_power())
-#%%
-test_playground4 = playground()
-test_playground4.add_cubic_receiver([0,0,0], 1, 1, 1)
-test_playground4.add_ray([-10,0,0],[1,0,0])
-test_playground4.add_ray([-10,0,0.25],[1,0,0])
-test_playground4.add_ray([-10,0,3],[1,0,0])
-test_playground4.simulate()
-%matplotlib ipympl
-test_playground4.display()
-print(test_playground4.get_receiver_power())
-# %%
-#Test plane initialization
-sun_phi_ls = np.linspace(0,np.pi,25)
-ray_count_ls = []
-for sun_phi in sun_phi_ls:
-    test_playground5 = playground()
-    initialize_rays_parallel_plane(test_playground5, 100, [0,0,0], 15, 15, 0, sun_phi)
-    test_playground5.add_rect_mirror(0,0,0,0,np.pi/2,7.5,7.5,mirror_type='receiver')
-    test_playground5.simulate()
-    ray_count_ls.append(test_playground5.mirrors[0].ray_count)
 
-fig = plt.figure()
-plt.plot(sun_phi_ls, ray_count_ls, '.')
-plt.show()
+def get_solar_positions(date, lat='48.324777 N', long='11.405610 E', elevation=0, N_datapoints=12):
+    start = date - 1
+    end = date + 1
+    location = api.Topos(lat, long, elevation_m=elevation)
+    t, y = almanac.find_discrete(start, end, almanac.sunrise_sunset(eph, location)) #sunrise and sunset times
+    
+    for i in range(0, len(t)):
+        if y[i] == 1:
+            sunrise = t[i]
+            sunset = t[i+1]
+            break
+
+    sun = eph["Sun"]
+    earth = eph["Earth"]
+
+    delta_t = (sunset - sunrise)/(N_datapoints-1)
+
+    t_ls = [sunrise]
+    for n in range(1, N_datapoints):
+        t_ls.append(t_ls[-1] + delta_t)
+
+    phi = [] #azimuth
+    theta = [] #elevation
+
+    #Gets the azimuth and elevation at different times
+    for t in t_ls:
+        sun_pos = (earth + location).at(t).observe(sun).apparent()
+        elevation, azimuth, distance = sun_pos.altaz()
+        phi.append(azimuth)
+        theta.append(elevation)
+
+    #Converts units
+    for i in range(0, len(t_ls)):
+        t_ls[i] = t_ls[i].utc_strftime()
+        phi[i] = phi[i].radians
+        theta[i] = theta[i].radians
+
+    for i in range(0, len(t_ls)):
+        t_ls[i] = dt.datetime.strptime(t_ls[i][0:-4], '%Y-%m-%d %H:%M:%S')
+
+    t_since_sunrise = [0]
+    for i in range(1, len(t_ls)):
+        t_since_sunrise.append((t_ls[i]-t_ls[0]).total_seconds())
+
+    return np.array(t_ls), np.array(t_since_sunrise), np.array(phi), np.array(theta)
+# %%
 
 # %%
