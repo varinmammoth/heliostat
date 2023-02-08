@@ -47,9 +47,10 @@ sun_theta_ls = np.linspace(0,np.pi,25)
 ray_count_ls = []
 for sun_theta in sun_theta_ls:
     test_playground5 = playground()
-    initialize_rays_parallel_plane(test_playground5, 100, [0,0,0], 15, 15, 0, sun_theta)
-    test_playground5.add_rect_mirror(0,0,0,0,np.pi/2,15,15,mirror_type='receiver')
+    initialize_rays_parallel_plane(test_playground5, 10, [0,0,0], 15, 15, 0, sun_theta)
+    test_playground5.add_rect_mirror(0,0,0,0,np.pi/2,15,15,mirror_type='ground')
     test_playground5.simulate()
+    test_playground5.display()
     ray_count_ls.append(test_playground5.mirrors[0].ray_count)
 #%%
 fig = plt.figure()

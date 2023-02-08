@@ -182,13 +182,9 @@ def initialise_mirrors(playground, position_ls, a, b, receiver_position, phi, th
         n3 = np.array([np.cos(phi), -np.sin(phi), 0])
         n1 = np.array([np.sin(phi), np.cos(phi), 0])
 
-
         #Elevation
         n3 = rot_vector(n3, -n1, theta)
     
-
-       
-
         # The vector x that points from mirror center to receiver
         x = receiver_position - position_ls[i]
         x = x/np.linalg.norm(x)
@@ -217,10 +213,4 @@ def initialise_mirrors(playground, position_ls, a, b, receiver_position, phi, th
 
     return
 # %%
-test_playground = playground()
-position_ls = [[10,0,0], [20,0,0], [-10,0,0], [-20,0,0]]
-initialise_mirrors(test_playground, position_ls, 2, 2, [0,0,10], 0, np.pi/4)
-test_playground.add_cubic_receiver([0,0,10], 1,1,1)
-%matplotlib ipympl
-test_playground.display()
 # %%
