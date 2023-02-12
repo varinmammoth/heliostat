@@ -187,12 +187,27 @@ class playground:
                                     self.finished_and_absorbed_rays += 1
                     
                             break
+                    if got_intersection == True:
+                        break
                 if got_intersection == False:
                     ray.finished = True
                     self.finished_and_absorbed_rays += 1
         return
 
-        # def final_propogation(self):
+    def simulate(self):
+        i = 0
+        while self.finished_and_absorbed_rays != self.num_rays:
+            self.get_intersections()
+            self.propagate_rays()
+            i += 1
+            if i > 1e6:
+                break
+        print(i)
+        return
+    
+    def get_history(self):
+        return self.mirrors, self.rays
+
 
 # %%
 template_ray = ray(np.array([1.,1.,1.]), np.array([2.,2.,2.]), 2)
@@ -208,6 +223,5 @@ template_mirror_ls.append(template_mirror2)
 
 test_playground = playground(template_mirror_ls, template_ray_ls)
 # %%
-test_playground.get_intersections()
-test_playground.propagate_rays()
+test_playground.simulate()
 # %%
