@@ -6,6 +6,18 @@ from numba.experimental import jitclass
 from numba import int32, int64, float64, boolean, char, typed, typeof
 from numba.types import Array, List, string
 
+import datetime as dt
+
+from skyfield import api
+ts = api.load.timescale()
+eph = api.load('de421.bsp')
+from skyfield import almanac
+
+import warnings
+warnings.filterwarnings("ignore")
+
+import time
+
 def dump(obj):
   for attr in dir(obj):
     print("obj.%s = %r" % (attr, getattr(obj, attr)))
@@ -174,21 +186,21 @@ class playground:
                             got_intersection = True
 
                             mirror.ray_count += 1
-
-                            np.append(ray.history_px, ray.p[0])
-                            np.append(ray.history_py, ray.p[1])
-                            np.append(ray.history_pz, ray.p[2])
-                            np.append(ray.history_ax, ray.a[0])
-                            np.append(ray.history_ay, ray.a[1])
-                            np.append(ray.history_az, ray.a[2])
+                            
+                            ray.history_px = np.append(ray.history_px, ray.p[0])
+                            ray.history_py = np.append(ray.history_py, ray.p[1])
+                            ray.history_pz = np.append(ray.history_pz, ray.p[2])
+                            ray.history_ax = np.append(ray.history_ax, ray.a[0])
+                            ray.history_ay = np.append(ray.history_ay, ray.a[1])
+                            ray.history_az = np.append(ray.history_az, ray.a[2])
                             
                             if mirror.mirror_type == 'absorber':
-                                    ray.absorbed = True
-                                    self.finished_and_absorbed_rays += 1
+                                ray.absorbed = True
+                                self.finished_and_absorbed_rays += 1
                     
-                            break
                     if got_intersection == True:
                         break
+
                 if got_intersection == False:
                     ray.finished = True
                     self.finished_and_absorbed_rays += 1
@@ -200,28 +212,69 @@ class playground:
             self.get_intersections()
             self.propagate_rays()
             i += 1
-            if i > 1e6:
+            if i > 1e5:
                 break
-        print(i)
         return
     
     def get_history(self):
         return self.mirrors, self.rays
 
+def visualize(mirror_ls, ray_ls, xlim=[-15,15], ylim=[-15,15], zlim=[-15,15], show_rays=True, show_mirrors=True, show_mirror_normals=True):
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    ax.set_zlim(zlim)
+    
+    if show_mirrors == True:
+        for mirror in mirror_ls:
+            if mirror.isGround == False:
+                P = mirror.C - (mirror.a/2)*mirror.n1 - (mirror.b/2)*mirror.n2
+                dy = np.linspace(0, mirror.b, 100)
+                x = []
+                y = []
+                z = []
+                Pi = P
+                for i in dy:
+                    Pi = P + i*mirror.n2
+                    x.append(Pi[0])
+                    y.append(Pi[1])
+                    z.append(Pi[2])
+                    vector_end = Pi + mirror.a*mirror.n1
+                    x.append(vector_end[0])
+                    y.append(vector_end[1])
+                    z.append(vector_end[2])
+                    ax.plot(x, y, z, color='blue')
 
-# %%
-template_ray = ray(np.array([1.,1.,1.]), np.array([2.,2.,2.]), 2)
-template_ray2 = ray(np.array([1.,2.,1.]), np.array([2.,1.,2.]), 2)
-template_ray_ls = typed.List()
-template_ray_ls.append(template_ray)
-template_ray_ls.append(template_ray2)
-template_mirror = mirror(2,2,2,2,2,2,2, 'mirror')
-template_mirror2 = mirror(5,2,3,2,2,2,2, 'mirror')
-template_mirror_ls = typed.List()
-template_mirror_ls.append(template_mirror)
-template_mirror_ls.append(template_mirror2)
+    if show_mirror_normals == True:
+        for mirror in mirror_ls:
+            x = []
+            y = []
+            z = []
+            x.append(mirror.C[0])
+            y.append(mirror.C[1])
+            z.append(mirror.C[2])
+            x.append(x[-1] + mirror.n3[0])
+            y.append(y[-1] + mirror.n3[1])
+            z.append(z[-1] + mirror.n3[2])
+            ax.plot(x, y, z, color='black')
 
-test_playground = playground(template_mirror_ls, template_ray_ls)
-# %%
-test_playground.simulate()
-# %%
+    if show_rays == True:
+        for ray in ray_ls:
+            x = []
+            y = []
+            z = []
+
+            history_length = len(ray.history_px)
+            for point_i in range(0, history_length):
+                x.append(ray.history_px[point_i])
+                y.append(ray.history_py[point_i])
+                z.append(ray.history_pz[point_i])
+            ax.plot(x, y, z, color='r')
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    plt.show()
+    return
+
