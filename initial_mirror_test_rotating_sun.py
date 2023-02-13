@@ -2,12 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from playgroundcode import playground
 from playgroundcode import rot_vector
-from initializationcode import *
+from initializationcode_final import *
 from Matrix import mirror_normal
 
 from scipy.interpolate import interp1d
 from scipy.integrate import quad
-from initializationcode import get_solar_positions
+from initializationcode_final import get_solar_positions
 
 
 day = ts.utc(2023, 3, 21) #Date
