@@ -206,14 +206,22 @@ class playground:
                     self.finished_and_absorbed_rays += 1
         return
 
+    def final_propagation(self):
+        for ray_i in range(0, len(self.rays)):
+            ray = self.rays[ray_i]
+            if ray.absorbed == False:
+                rfinal = ray.p + 20*ray.a
+                ray.history_px = np.append(ray.history_px, rfinal[0])
+                ray.history_py = np.append(ray.history_py, rfinal[1])
+                ray.history_pz = np.append(ray.history_pz, rfinal[2])
+
     def simulate(self):
         i = 0
         while self.finished_and_absorbed_rays != self.num_rays:
             self.get_intersections()
             self.propagate_rays()
             i += 1
-            if i > 1e5:
-                break
+        self.final_propagation()
         return
     
     def get_history(self):
