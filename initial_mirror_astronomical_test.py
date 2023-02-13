@@ -1,5 +1,5 @@
-from initializationcode import *
-from initializationcode import get_solar_positions
+from initializationcode_final import *
+from initializationcode_final import get_solar_positions
 
 
 day = ts.utc(2023, 3, 21) #Date
