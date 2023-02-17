@@ -68,7 +68,7 @@ ray_spec = [
 class ray():
     def __init__(self, p: Array, a: Array, m: int64):
         self.p = p
-        self.a = a
+        self.a = a/np.linalg.norm(a)
         self.s0_keys = np.zeros(m, dtype=np.float64) #numba doesn't support dictionaries, so we specify a list for keys
         self.s0_mirrors_index = np.zeros(m, dtype=np.int64) #and another list for the values, in this case it is the index of the mirrors in playground.mirrors
         self.history_px = np.array([self.p[0]])

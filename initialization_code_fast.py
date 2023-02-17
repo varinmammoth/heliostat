@@ -7,6 +7,8 @@ from numba import int32, int64, float64
 from playground_fast import *
 
 import time
+
+from tqdm import tqdm
 # %%
 def rot_vector(v, k, theta):
     return np.cos(theta)*v + np.cross(k, v)*np.sin(theta) + k*np.dot(k, v)*(1-np.cos(theta))
@@ -112,16 +114,42 @@ def create_circular_positions(R, num_mirrors_ls):
             y = r*np.sin(i*d_angle)
             position_ls.append([x, y, 5])
     return position_ls
+
+def initialise_rays_cone(rays_ls_old, N, omega_sun):
+    rays_ls_new = typed.List()
+    m = N*len(rays_ls_old)
+
+    for old_ray in rays_ls_old:
+        for i in tqdm(range(0, N)):
+            p = old_ray.p
+            
+            a = old_ray.a
+            a0 = np.sqrt(omega_sun/np.pi)
+            z = (a[0]+a[1])/a[2]
+            x = np.array([-1.,-1., z], dtype=np.float64)
+            
+            alpha = np.random.rand()
+            beta = 2*np.pi*np.random.rand()
+
+            A = alpha*a0*x/np.linalg.norm(x)
+            A = rot_vector(A, a, beta)
+
+            a_cone = a + A
+            a_cone = a_cone/np.linalg.norm(a_cone)
+
+            rays_ls_new.append(ray(p, a_cone, m))
+
+    return rays_ls_new
 # %%
 start = time.time()
 
 position_ls = create_circular_positions(10, [6,8,10])
 mirror_ls = initialise_mirrors(position_ls,3,3,[0,0,10], 0, np.pi/2)
 # mirror_ls = typed.List()
-ground = mirror(0,0,0,0,np.pi/2,15,15, 'ground')
-mirror_ls.append(ground)
+# ground = mirror(0,0,0,0,np.pi/2,15,15, 'ground')
+# mirror_ls.append(ground)
 mirror_ls = add_receiver(mirror_ls, [0,0,10], 3, 3, 3)
-ray_ls = initialize_rays_parallel_plane_fast(len(mirror_ls), 300, center=[0,0,5], a=15, b=15, phi=0, theta=np.pi/2)
+ray_ls = initialize_rays_parallel_plane_fast(len(mirror_ls), 10, center=[0,0,5], a=15, b=15, phi=0, theta=np.pi/2)
 
 end = time.time()
 print("Elapsed = %s" % (end - start))
@@ -133,6 +161,35 @@ test_playground.simulate()
 end = time.time()
 print("Elapsed = %s" % (end - start))
 #%%
+%matplotlib ipympl
+visualize(*test_playground.get_history(), show_rays=True)
+# %%
+'''
+Test the ray cone generator
+'''
+#Add ground and a single ray to the system
+start = time.time()
+
+mirror_ls = typed.List()
+ground = mirror(0,0,0,0,np.pi/2,15,15, 'ground')
+mirror_ls.append(ground)
+ray_ls = typed.List()
+ray_ls.append(ray(np.array([0.,0.,0.]), np.array([-1.,0.,1.]), 1))
+test_playground = playground(mirror_ls, ray_ls)
+test_playground.simulate()
+
+end = time.time()
+print("Elapsed = %s" % (end - start))
+
+start = time.time()
+ray_ls_old = test_playground.rays
+omega_sun = 0.12566370614359174
+ray_cone = initialise_rays_cone(ray_ls_old, 100, omega_sun)
+test_playground = playground(mirror_ls, ray_cone)
+test_playground.simulate()
+end = time.time()
+print("Elapsed = %s" % (end - start))
+# %%
 %matplotlib ipympl
 visualize(*test_playground.get_history(), show_rays=True)
 # %%
