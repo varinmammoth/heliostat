@@ -115,6 +115,66 @@ def create_circular_positions(R, num_mirrors_ls):
             position_ls.append([x, y, 5])
     return position_ls
 
+def initialise_mirrors_optimal(position_ls, receiver_position, phi, theta, a=4, b=4):
+    def rotation(t, u):
+        return np.matrix([[np.cos(t) + u[0]**2 * (1 - np.cos(t)), u[0]*u[1]*(1 - np.cos(t)) - u[2]*np.sin(t), u[0]*u[2]*(1 - np.cos(t)) + u[1]*np.sin(t)],
+                        [u[1]*u[0]*(1 - np.cos(t)) + u[2]*np.sin(t), np.cos(t) + u[1]**2 * (1 - np.cos(t)), u[1]*u[2]*(1 - np.cos(t))-u[0]*np.sin(t)],
+                        [u[2]*u[0]*(1 - np.cos(t)) - u[1]*np.sin(t), u[2]*u[1]*(1 - np.cos(t)) + u[0]*np.sin(t), np.cos(t) + u[2]**2 * (1 - np.cos(t))]])
+
+    def mirror_normal(input, reflected):
+        sun = input/np.linalg.norm(input) # direction of Sun, normalized
+        receiver = reflected/np.linalg.norm(reflected) # direction of receiver, normalized
+        rotation_axis = np.cross(receiver, sun)/np.linalg.norm(np.cross(receiver, sun)) # takes the cross product of the incoming and reflected ray, this defines the rotation axis
+        magnitude = np.dot(receiver, sun) # as the directionvectprs are normalized, this is the cosine of the inbetween angle
+        angle = np.arccos(magnitude)/2 # we need to divide the angle by 2 (law of reflections)
+        mirror_normal = np.array(rotation(angle, rotation_axis)@receiver)[0]
+        return mirror_normal
+    
+    mirror_ls = typed.List()
+
+    receiver_position = np.array(receiver_position, dtype=np.float64)
+    position_ls = np.array(position_ls, dtype=np.float64)
+
+    input = np.array([np.cos(phi),-np.sin(phi), np.tan(theta)]) #sun position
+
+    for i in range(0, len(position_ls)):
+        reflected = receiver_position - position_ls[i]
+
+        n3 = mirror_normal(input, reflected) #this is the normal of the mirror
+
+        # Check for Nan due to n3 having 0 x-component, if n3[0], add a small number to it.
+        if n3[0] == 0:
+            n3[0] += 1e-5
+
+        x_hat = np.array([1, 0, 0]) #this is where we measure the azimuth angle from. Add a link to an explaining graph.
+        n3_xy = np.array([n3[0], n3[1], 0])/np.linalg.norm(np.array([n3[0], n3[1], 0])) #n3 projection to xy plane, normalized
+
+        sign_detector2 = np.cross(n3_xy, x_hat) #takes care of the azimuth angle, as we need to be careful as if it would be bigger than Pi, we need to change it (see below)
+        get_n3_theta = np.dot(n3_xy, n3) #elevation of the mirror normal to the ground, using the angle between its xy projection and itself
+
+        if np.abs(get_n3_theta) <= 1e-3:
+            get_n3_theta += 1e-3 #to avoid nan values
+
+        n3_theta = np.arccos(get_n3_theta) #the actual elevation
+        get_n3_phi = np.dot(x_hat, n3_xy)#get the azimuth angle
+
+        if np.abs(get_n3_phi) <= 1e-5:
+            get_n3_phi += 1e-5
+
+        n3_phi = np.arccos(get_n3_phi)
+
+        if sign_detector2[2] > 0:
+            n3_phi = n3_phi
+        else:
+            n3_phi = 2 * np.pi - n3_phi
+
+        if np.abs(n3_theta) <=  1e-5:
+            n3_theta += 1e-5
+
+        mirror_ls.append(mirror(*position_ls[i], n3_phi, n3_theta, a, b))
+    
+    return mirror_ls
+
 def initialise_rays_cone(rays_ls_old, N, omega_sun):
     rays_ls_new = typed.List()
     m = N*len(rays_ls_old)
@@ -143,13 +203,13 @@ def initialise_rays_cone(rays_ls_old, N, omega_sun):
 # %%
 start = time.time()
 
-position_ls = create_circular_positions(10, [6,8,10])
-mirror_ls = initialise_mirrors(position_ls,3,3,[0,0,10], 0, np.pi/2)
+position_ls = create_circular_positions(10, [4,5,6])
+mirror_ls = initialise_mirrors_optimal(position_ls,[0,0,15], 0, np.pi/2)
 # mirror_ls = typed.List()
 # ground = mirror(0,0,0,0,np.pi/2,15,15, 'ground')
 # mirror_ls.append(ground)
-mirror_ls = add_receiver(mirror_ls, [0,0,10], 3, 3, 3)
-ray_ls = initialize_rays_parallel_plane_fast(len(mirror_ls), 10, center=[0,0,5], a=15, b=15, phi=0, theta=np.pi/2)
+mirror_ls = add_receiver(mirror_ls, [0,0,15], 3, 3, 3)
+ray_ls = initialize_rays_parallel_plane_fast(len(mirror_ls), 10, center=[0,0,0], a=15, b=15, phi=0, theta=np.pi/2)
 
 end = time.time()
 print("Elapsed = %s" % (end - start))
@@ -183,7 +243,7 @@ print("Elapsed = %s" % (end - start))
 
 start = time.time()
 ray_ls_old = test_playground.rays
-omega_sun = 0.12566370614359174
+omega_sun = 6.8e-5
 ray_cone = initialise_rays_cone(ray_ls_old, 100, omega_sun)
 test_playground = playground(mirror_ls, ray_cone)
 test_playground.simulate()

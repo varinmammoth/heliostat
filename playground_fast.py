@@ -226,6 +226,14 @@ class playground:
     
     def get_history(self):
         return self.mirrors, self.rays
+    
+    def get_receiver_power(self):
+        #Returns the total number of rays absorbed by the receiver.
+        rays_received = 0
+        for mirror in self.mirrors:
+            if mirror.isReceiver == True:
+                rays_received += mirror.ray_count
+        return rays_received
 
 def visualize(mirror_ls, ray_ls, xlim=[-15,15], ylim=[-15,15], zlim=[-15,15], show_rays=True, show_mirrors=True, show_mirror_normals=True):
     fig = plt.figure()
