@@ -8,6 +8,11 @@ from playground_fast import *
 
 import time
 
+from skyfield import api
+ts = api.load.timescale()
+eph = api.load('de421.bsp')
+from skyfield import almanac
+
 from tqdm import tqdm
 # %%
 def rot_vector(v, k, theta):
@@ -180,7 +185,7 @@ def initialise_rays_cone(rays_ls_old, N, omega_sun):
     m = N*len(rays_ls_old)
 
     for old_ray in rays_ls_old:
-        for i in tqdm(range(0, N)):
+        for i in range(0, N):
             p = old_ray.p
             
             a = old_ray.a
@@ -200,56 +205,68 @@ def initialise_rays_cone(rays_ls_old, N, omega_sun):
             rays_ls_new.append(ray(p, a_cone, m))
 
     return rays_ls_new
-# %%
-start = time.time()
 
-position_ls = create_circular_positions(10, [4,5,6])
-mirror_ls = initialise_mirrors_optimal(position_ls,[0,0,15], 0, np.pi/2)
-# mirror_ls = typed.List()
-# ground = mirror(0,0,0,0,np.pi/2,15,15, 'ground')
-# mirror_ls.append(ground)
-mirror_ls = add_receiver(mirror_ls, [0,0,15], 3, 3, 3)
-ray_ls = initialize_rays_parallel_plane_fast(len(mirror_ls), 10, center=[0,0,0], a=15, b=15, phi=0, theta=np.pi/2)
+def get_solar_positions(date, lat='48.324777 N', long='11.405610 E', elevation=0, N_datapoints=12):
+    """Gets the azimutal and elevation angle of the sun at a particuliar lat, long, and elevation for
+    a given date. N_datapoints are given, with the points equally spaced in time between the sunrise and 
+    sunset times on that date.
 
-end = time.time()
-print("Elapsed = %s" % (end - start))
-#%%
-test_playground = playground(mirror_ls, ray_ls)
-# %%
-start = time.time()
-test_playground.simulate()
-end = time.time()
-print("Elapsed = %s" % (end - start))
-#%%
-%matplotlib ipympl
-visualize(*test_playground.get_history(), show_rays=True)
-# %%
-'''
-Test the ray cone generator
-'''
-#Add ground and a single ray to the system
-start = time.time()
+    Args:
+        date (datetime): Date.
+        lat (str, optional): Latitude. Defaults to '48.324777 N'.
+        long (str, optional): Longtitudww. Defaults to '11.405610 E'.
+        elevation (float, optional): Elevation. Defaults to 0.
+        N_datapoints (int, optional): Number of equally spaced (in time) values. Defaults to 12.
 
-mirror_ls = typed.List()
-ground = mirror(0,0,0,0,np.pi/2,15,15, 'ground')
-mirror_ls.append(ground)
-ray_ls = typed.List()
-ray_ls.append(ray(np.array([0.,0.,0.]), np.array([-1.,0.,1.]), 1))
-test_playground = playground(mirror_ls, ray_ls)
-test_playground.simulate()
+    Returns:
+        tuple: Tuple of np.arrays. Time in datetime format, time after sunrise, azimutal angle at that time, elevation angle at that time.
+    """
+    start = date - 1
+    end = date + 1
+    location = api.Topos(lat, long, elevation_m=elevation)
+    t, y = almanac.find_discrete(start, end, almanac.sunrise_sunset(eph, location)) #sunrise and sunset times
+    
+    for i in range(0, len(t)):
+        if y[i] == 1:
+            sunrise = t[i]
+            sunset = t[i+1]
+            break
 
-end = time.time()
-print("Elapsed = %s" % (end - start))
+    sun = eph["Sun"]
+    earth = eph["Earth"]
 
-start = time.time()
-ray_ls_old = test_playground.rays
-omega_sun = 6.8e-5
-ray_cone = initialise_rays_cone(ray_ls_old, 100, omega_sun)
-test_playground = playground(mirror_ls, ray_cone)
-test_playground.simulate()
-end = time.time()
-print("Elapsed = %s" % (end - start))
-# %%
-%matplotlib ipympl
-visualize(*test_playground.get_history(), show_rays=True)
+    delta_t = (sunset - sunrise)/(N_datapoints-1)
+
+    t_ls = [sunrise]
+    for n in range(1, N_datapoints):
+        t_ls.append(t_ls[-1] + delta_t)
+
+    phi = [] #azimuth
+    theta = [] #elevation
+    distance_ls = []
+
+    #Gets the azimuth and elevation at different times
+    for t in t_ls:
+        sun_pos = (earth + location).at(t).observe(sun).apparent()
+        elevation, azimuth, distance = sun_pos.altaz()
+        phi.append(azimuth)
+        theta.append(elevation)
+
+        d = earth.at(t).observe(sun).apparent().distance()
+        distance_ls.append(d.m)
+
+    #Converts units
+    for i in range(0, len(t_ls)):
+        t_ls[i] = t_ls[i].utc_strftime()
+        phi[i] = phi[i].radians
+        theta[i] = theta[i].radians
+
+    for i in range(0, len(t_ls)):
+        t_ls[i] = dt.datetime.strptime(t_ls[i][0:-4], '%Y-%m-%d %H:%M:%S')
+
+    t_since_sunrise = [0]
+    for i in range(1, len(t_ls)):
+        t_since_sunrise.append((t_ls[i]-t_ls[0]).total_seconds())
+
+    return np.array(t_ls), np.array(t_since_sunrise), np.array(phi), np.array(theta), np.array(distance_ls)
 # %%
