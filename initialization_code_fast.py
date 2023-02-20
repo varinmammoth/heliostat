@@ -54,6 +54,25 @@ def initialize_rays_parallel_plane_fast(m, ray_density = 10, center=[0,0,0], a=1
 
     return ray_ls
 
+def initialize_rays_parallel(m, xlim=[-10,10], ylim=[-10,10], ray_density = 10, phi=np.pi/4, theta=np.pi/4):
+    mirror_ls = typed.List()
+
+    x = np.linspace(*xlim, ray_density)
+    y = np.linspace(*ylim, ray_density)
+    x, y = np.meshgrid(x, y)
+
+    a = np.array([np.cos(theta)*np.cos(phi), -np.cos(theta)*np.sin(phi), np.sin(theta)])
+
+    for i in range(0, len(x)):
+        for j in range(0, len(x[0])):
+            r = np.array([x[i][j], y[i][j], 0])
+
+            start = r + 100*a
+
+            mirror_ls.append(ray(start, -a, m))
+
+    return mirror_ls
+
 def initialise_mirrors(position_ls, a, b, receiver_position, phi, theta, mirror_type='mirror'):
     
     mirror_ls = typed.List()
@@ -180,9 +199,8 @@ def initialise_mirrors_optimal(position_ls, receiver_position, phi, theta, a=4, 
     
     return mirror_ls
 
-def initialise_rays_cone(rays_ls_old, N, omega_sun):
+def initialise_rays_cone(rays_ls_old, N, omega_sun, m):
     rays_ls_new = typed.List()
-    m = N*len(rays_ls_old)
 
     for old_ray in rays_ls_old:
         for i in range(0, N):

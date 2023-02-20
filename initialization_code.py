@@ -53,7 +53,7 @@ def initialize_rays_parallel(playground, xlim=[-10,10], ylim=[-10,10], ray_densi
     y = np.linspace(*ylim, ray_density)
     x, y = np.meshgrid(x, y)
 
-    n1 = np.array([np.sin(phi), np.cosh(phi), 0])
+    n1 = np.array([np.sin(phi), np.cos(phi), 0])
     a = np.array([np.cos(phi), -np.sin(phi), 0])
     a = rot_vector(a, -n1, theta)
 

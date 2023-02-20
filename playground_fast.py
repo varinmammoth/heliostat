@@ -67,6 +67,7 @@ ray_spec = [
 @jitclass(ray_spec)
 class ray():
     def __init__(self, p: Array, a: Array, m: int64):
+        #m is the number of mirrors we will use
         self.p = p
         self.a = a/np.linalg.norm(a)
         self.s0_keys = np.zeros(m, dtype=np.float64) #numba doesn't support dictionaries, so we specify a list for keys
@@ -163,7 +164,7 @@ class playground:
             ray = self.rays[ray_i]
             for mirror_i in range(0, len(self.mirrors)):
                 mirror = self.mirrors[mirror_i]
-                s0 = np.dot((mirror.C - ray.p), mirror.n3)/np.dot(ray.a, mirror.n3)
+                s0 = np.dot((mirror.C - ray.p), mirror.n3)/(np.dot(ray.a, mirror.n3)+1e-300)
                 ray.s0_keys[mirror_i] = s0
                 ray.s0_mirrors_index[mirror_i] = mirror_i
         return

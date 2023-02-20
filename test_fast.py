@@ -6,11 +6,11 @@ from initialization_code_fast import *
 start = time.time()
 
 position_ls = create_circular_positions(10, [4,5,6])
-mirror_ls = initialise_mirrors_optimal(position_ls,[0,0,15], 0, np.pi/6)
+mirror_ls = initialise_mirrors_optimal(position_ls,[0,0,30], 0, np.pi/6)
 # mirror_ls = typed.List()
 # ground = mirror(0,0,0,0,np.pi/2,15,15, 'ground')
 # mirror_ls.append(ground)
-mirror_ls = add_receiver(mirror_ls, [0,0,15], 3, 3, 3)
+mirror_ls = add_receiver(mirror_ls, [0,0,30], 3, 3, 3)
 ray_ls = initialize_rays_parallel_plane_fast(len(mirror_ls), 10, center=[0,0,0], a=15, b=15, phi=0, theta=np.pi/6)
 
 end = time.time()
@@ -45,8 +45,8 @@ print("Elapsed = %s" % (end - start))
 
 start = time.time()
 ray_ls_old = test_playground.rays
-omega_sun = 6.8e-5
-ray_cone = initialise_rays_cone(ray_ls_old, 100, omega_sun)
+omega_sun = 0.5*np.pi/180
+ray_cone = initialise_rays_cone(ray_ls_old, 100, omega_sun, 1)
 test_playground = playground(mirror_ls, ray_cone)
 test_playground.simulate()
 end = time.time()
