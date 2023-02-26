@@ -207,7 +207,7 @@ def initialise_rays_cone(rays_ls_old, N, omega_sun, m):
             p = old_ray.p
             
             a = old_ray.a
-            a0 = np.sqrt(omega_sun/np.pi)
+            a0 = np.tan(omega_sun/2)
             z = (a[0]+a[1])/a[2]
             x = np.array([-1.,-1., z], dtype=np.float64)
             
