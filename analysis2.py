@@ -7,6 +7,7 @@ from numba import njit
 from numba import typed
 from numba import int32, int64, float64
 from scipy.interpolate import CubicSpline
+from scipy.integrate import odeint, quad
 
 from playground_fast import *
 from initialization_code_fast import *
@@ -177,6 +178,27 @@ def performance_cone_2step(t_ls, position_ls, receiver_pos, mirror_dim, receiver
     
     return output_t_ls, power_ls, count_ls
 
+def get_T(t, P, Tc, alpha=1, c=1, k=1):
+    #Interpolate the power
+    P_func = CubicSpline(t, P)
+    
+    #Define dT/dt
+    dTdt = lambda T, t: (alpha/c)*P_func(t) - k*(T-Tc)
+
+    #Solve the ODE
+    t_ls = np.linspace(t[0], t[-1], 100) 
+    T0 = Tc
+    T = odeint(dTdt, T0, t_ls)
+    
+    #Interpolate the ODE solution
+    T_func = CubicSpline(t_ls, T)
+
+    #Intergrate to get average temperature
+    avg_T = quad(T_func, t_ls[0], t_ls[-1])[0]
+    avg_T /= (t_ls[-1]-t_ls[0])
+
+    return avg_T, T_func
+
 def ground_power(ray_density, theta_ls, phi_ls, ground_length):
     N_rays = ray_density**2
     ground_lim = ground_length/2
@@ -286,6 +308,25 @@ plt.ylabel('Power (Arbitrary units)')
 plt.legend(bbox_to_anchor =(0.5,-0.63), loc='lower center')
 
 plt.ylim([0,2000])
+plt.show()
+#%%
+'''
+From power, get temperature
+'''
+Tc = 300
+Tfunc_ls = []
+Tavg_ls = []
+for power in power_scenario_ls:
+    power = np.array(power)
+    Tavg, Tfunc = get_T(t_sunrise, power, Tc=Tc)
+    Tavg_ls.append(Tavg)
+    Tfunc_ls.append(Tfunc)
+
+t_plot = np.linspace(t_sunrise[0], t_sunrise[-1])
+for i, func in enumerate(Tfunc_ls):
+    plt.plot(t_plot, func(t_plot)/Tc, label=r'$R={R_ls[i]}$')
+plt.xlabel('Time')
+plt.ylabel(r'$T/T_{c}$')
 plt.show()
 
 # %%
