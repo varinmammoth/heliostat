@@ -111,10 +111,8 @@ def performance_no_cone_2step(t_ls, position_ls, receiver_pos, mirror_dim, recei
         playground1 = playground(mirror_ls, ray_ls)
         playground1.simulate()
 
-        print('1')
         mirror_ls = typed.List()
         mirror_ls = add_receiver(mirror_ls, receiver_pos, *receiver_dim)
-        print('2')
         ray_ls_new = typed.List()
         for old_ray in playground1.rays:
             ray_ls_new.append(ray(old_ray.p, old_ray.a, len(mirror_ls)))
@@ -157,9 +155,7 @@ def performance_cone_2step(t_ls, position_ls, receiver_pos, mirror_dim, receiver
         for old_ray in playground1.rays:
             ray_ls_new.append(ray(old_ray.p, old_ray.a, len(mirror_ls)))
         sun_angle = 0.533*np.pi/180
-        print('1')
         ray_ls_new = initialise_rays_cone(ray_ls_new, N_raycone, sun_angle, len(mirror_ls))
-        print('2')
 
         playground1 = playground(mirror_ls, ray_ls_new)
         playground1.simulate()
@@ -180,7 +176,9 @@ def performance_cone_2step(t_ls, position_ls, receiver_pos, mirror_dim, receiver
 
 def get_T(t, P, Tc, alpha=1, c=1, k=1):
     #Interpolate the power
-    P_func = CubicSpline(t, P)
+    P_func_spline = CubicSpline(t, P)
+    #Due to cubic spline, we may get negative values, set these to 0
+    P_func = lambda t: max(0, P_func_spline(t))
     
     #Define dT/dt
     dTdt = lambda T, t: (alpha/c)*P_func(t) - k*(T-Tc)
@@ -191,8 +189,17 @@ def get_T(t, P, Tc, alpha=1, c=1, k=1):
     T = odeint(dTdt, T0, t_ls)
     
     #Interpolate the ODE solution
-    T_func = CubicSpline(t_ls, T)
-
+    T_func_spline = CubicSpline(t_ls, T)
+    #Due to cubic spline, we may get T < Tc, set these to 0
+    def T_func(t):
+        if type(t) == np.ndarray or type(t) == list:
+            output = []
+            for i in t:
+                output.append(max(Tc, T_func_spline(i)))
+            return np.array(output)
+        else:
+            return max(Tc, T_func_spline(t))
+        
     #Intergrate to get average temperature
     avg_T = quad(T_func, t_ls[0], t_ls[-1])[0]
     avg_T /= (t_ls[-1]-t_ls[0])
@@ -260,8 +267,12 @@ lat = '13.7563 N' #Location
 long = '100.5018 E'
 elevation = 1.5 #Elevation
 t, t_sunrise, phi, theta, distance = get_solar_positions(day, lat, long, elevation, 20)
+
+for i, val in enumerate(theta):
+    if val < 0:
+        theta[i] = 0
 #%%
-ray_density = 100
+ray_density = 150
 ground_length = 30
 mirror_num_ls = [4,8,16,32,64]
 mirror_dim = [1.,1.]
@@ -273,11 +284,14 @@ R_list = [6, 7, 10, 12, 14]
 power_scenario_ls = []
 count_scenario_ls = []
 
+start = time.time()
 for radius in R_list:
     position_ls = create_circular_positions(radius, mirror_num_ls)
     t_out, power_ls, count_ls = performance_no_cone_2step(t_sunrise, position_ls, receiver_pos, mirror_dim,receiver_dim,phi,theta,ray_density,ground_length)
     power_scenario_ls.append(power_ls)
     count_scenario_ls.append(count_ls)
+end = time.time()
+print(f'Elapsed time: {end-start}')
 #%%
 #Ground power
 ground_power_ls = ground_power(ray_density, theta, phi, ground_length)
@@ -307,7 +321,7 @@ R = Total radius of mirror configuration
 plt.ylabel('Power (Arbitrary units)')
 plt.legend(bbox_to_anchor =(0.5,-0.63), loc='lower center')
 
-plt.ylim([0,2000])
+plt.ylim([-100,3000])
 plt.show()
 #%%
 '''
@@ -318,15 +332,28 @@ Tfunc_ls = []
 Tavg_ls = []
 for power in power_scenario_ls:
     power = np.array(power)
+
+    t_test = np.linspace(t_sunrise[0], t_sunrise[-1], 1000)
+    power_test_func = CubicSpline(t_sunrise, power)
+
     Tavg, Tfunc = get_T(t_sunrise, power, Tc=Tc)
     Tavg_ls.append(Tavg)
     Tfunc_ls.append(Tfunc)
 
 t_plot = np.linspace(t_sunrise[0], t_sunrise[-1])
 for i, func in enumerate(Tfunc_ls):
-    plt.plot(t_plot, func(t_plot)/Tc, label=r'$R={R_ls[i]}$')
+    plt.plot(t_plot, func(t_plot)/Tc, label=f'R={R_list[i]}')
 plt.xlabel('Time')
 plt.ylabel(r'$T/T_{c}$')
+plt.legend()
+plt.show()
+
+t_plot = np.linspace(t_sunrise[0], t_sunrise[-1])
+for i, func in enumerate(Tfunc_ls):
+    plt.plot(t_plot, 1-Tc/func(t_plot), label=f'R={R_list[i]}')
+plt.xlabel('Time')
+plt.ylabel(r'$\eta_{carnot}$')
+plt.legend()
 plt.show()
 
 # %%
