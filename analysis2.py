@@ -178,7 +178,14 @@ def get_T(t, P, Tc, alpha=1, c=1, k=1):
     #Interpolate the power
     P_func_spline = CubicSpline(t, P)
     #Due to cubic spline, we may get negative values, set these to 0
-    P_func = lambda t: max(0, P_func_spline(t))
+    def P_func(t):
+        if type(t) == np.ndarray or type(t) == list:
+            output = []
+            for i in t:
+                output.append(max(0, P_func_spline(i)))
+            return np.array(output)
+        else:
+            return max(0, P_func_spline(t))
     
     #Define dT/dt
     dTdt = lambda T, t: (alpha/c)*P_func(t) - k*(T-Tc)
@@ -204,7 +211,11 @@ def get_T(t, P, Tc, alpha=1, c=1, k=1):
     avg_T = quad(T_func, t_ls[0], t_ls[-1])[0]
     avg_T /= (t_ls[-1]-t_ls[0])
 
-    return avg_T, T_func
+    # #Uncertainty in T
+    frac = 0.05
+    T_err_func = lambda t: (alpha*frac)/(c*k)
+    
+    return avg_T, T_func, T_err_func
 
 def ground_power(ray_density, theta_ls, phi_ls, ground_length):
     N_rays = ray_density**2
@@ -280,7 +291,8 @@ receiver_dim = [1.,1.,1.]
 receiver_pos = [0.,0.,15.]
 
 #Performance of same mirror config, but placing the mirrors farther from receiver/from each other
-R_list = [6, 7, 10, 12, 14]
+# R_list = [6, 7, 10, 12, 14]
+R_list = [10]
 power_scenario_ls = []
 count_scenario_ls = []
 
@@ -330,19 +342,26 @@ From power, get temperature
 Tc = 300
 Tfunc_ls = []
 Tavg_ls = []
+Terrfunc_ls = []
 for power in power_scenario_ls:
     power = np.array(power)
 
     t_test = np.linspace(t_sunrise[0], t_sunrise[-1], 1000)
     power_test_func = CubicSpline(t_sunrise, power)
 
-    Tavg, Tfunc = get_T(t_sunrise, power, Tc=Tc)
+    Tavg, Tfunc, Terrfunc = get_T(t_sunrise, power, Tc=Tc)
     Tavg_ls.append(Tavg)
     Tfunc_ls.append(Tfunc)
+    Terrfunc_ls.append(Terrfunc)
 
 t_plot = np.linspace(t_sunrise[0], t_sunrise[-1])
 for i, func in enumerate(Tfunc_ls):
-    plt.plot(t_plot, func(t_plot)/Tc, label=f'R={R_list[i]}')
+    y = func(t_plot)/Tc
+    y = np.array(y, dtype=float)
+    plt.plot(t_plot, y, label=f'R={R_list[i]}')
+    yerr = Terrfunc_ls[i](t_plot)
+    yerr = np.array(yerr, dtype=float)
+    plt.fill_between(t_plot, y-yerr, y+yerr, alpha=0.5)
 plt.xlabel('Time')
 plt.ylabel(r'$T/T_{c}$')
 plt.legend()
