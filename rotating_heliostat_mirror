@@ -1,0 +1,91 @@
+import numpy as np
+
+from initializationcode_final import *
+from initializationcode_final import get_solar_positions
+
+day = ts.utc(2023, 2, 9) #GIVE ANY DATE HERE. THIS WILL BE THE DAY YOU SIMULATE.
+
+lat = '47.3167 N' #GIVE ANY LATITUDE AND LONGITUDE ON THE GLOBE. THE SUNRAYS WILL HAVE THE ANGLES DEFINED BY THIS LOCATON, AND THE DATE ABOVE.
+long = '18.9114 E'
+
+elevation = 1.5 #Elevation above sea level. Unit is not known yet (Varin?)
+
+timesteps = 7 # Divide the time spent in daylight on the given day to n equal timesteps. It will then generate these events.
+
+t_ls, t_since_sunrise, phi_ls, sun_theta_ls = get_solar_positions(day, lat, long, elevation, timesteps) #gives you the data you need
+
+
+
+
+
+mirrornumber = 5
+
+#PLAYGROUND SPECIFICATIONS
+
+xlim = 50
+ylim = 50
+zlim = 70
+
+axislength = 10
+
+#position_ls = xlim * np.random.randn(mirrornumber,3)
+
+position_ls = np.array([[0, 0, 0]]) #, [20, 20, 0], [35, 35, 0], [-28, 13, 0], [-20, -20, 0],  [35, 35, 0], [-35, -35, 0]
+
+
+for i in range(0, timesteps):
+
+    print('CYCLE =', i)
+
+    receiver_phi = 3*np.pi/2 #receiver position
+    receiver_r = 40
+
+    receiver = receiver_r * np.array([np.cos(receiver_phi), -np.sin(receiver_phi), 1.5]) #0 -15 15 surely works, actually negative x works, positive x fixed
+
+    input = np.array([np.cos(phi_ls[i]), -np.sin(phi_ls[i]), np.tan(sun_theta_ls[i])])
+
+    test_playground = playground()
+    initialize_rays_parallel_plane(test_playground, 15, [0,0,0], 85, 85, phi_ls[i], sun_theta_ls[i])
+
+    for j in range(0, len(position_ls)):
+        print(j)
+
+        reflected = receiver-position_ls[j] #reflected [j]
+
+        ray_count_ls = []
+
+        mirror_axis = mirror_normal_calculator(position_ls[j], receiver, phi_ls[i], sun_theta_ls[i])[2]
+
+            #mirror(x + axislength * rotvect[0], y + axislength * rotvect[1]
+
+        normal_phi = mirror_normal_calculator(position_ls[j], receiver, phi_ls[i], sun_theta_ls[i])[0]
+        normal_theta =  mirror_normal_calculator(position_ls[j], receiver, phi_ls[i], sun_theta_ls[i])[1]
+
+        normal_phi1 = mirror_normal_calculator(position_ls[j] + mirror_axis * axislength, receiver, phi_ls[i], sun_theta_ls[i])[0]
+        normal_theta1 = mirror_normal_calculator(position_ls[j] + mirror_axis * axislength, receiver, phi_ls[i], sun_theta_ls[i])[1]
+
+        normal_phi2 = mirror_normal_calculator(position_ls[j] - mirror_axis * axislength, receiver, phi_ls[i], sun_theta_ls[i])[0]
+        normal_theta2 = mirror_normal_calculator(position_ls[j] - mirror_axis * axislength, receiver, phi_ls[i], sun_theta_ls[i])[1]
+
+
+        #test_playground.add_rect_mirror(position_ls[j][0], position_ls[j][1], position_ls[j][2], normal_phi, normal_theta, 15, 15, mirror_type='mirror')
+
+        test_playground.add_rect_mirror(position_ls[j][0] + mirror_axis[0] * axislength, position_ls[j][1] + mirror_axis[1] * axislength,
+                                        position_ls[j][2] + mirror_axis[2] * axislength, normal_phi1, normal_theta1, 15, 15, mirror_type='mirror')
+
+        test_playground.add_rect_mirror(position_ls[j][0] - mirror_axis[0] * axislength, position_ls[j][1] - mirror_axis[1] * axislength,
+                                        position_ls[j][2] - mirror_axis[2] * axislength, normal_phi2, normal_theta2, 15, 15, mirror_type='mirror')
+
+        # test_playground.add_heliostat_mirror(position_ls[j][0], position_ls[j][1], position_ls[j][2], mirror_axis, 10,
+        #                                      normal_phi, normal_theta, 10, 10, mirror_type='mirror')
+
+        test_playground.add_cubic_receiver(receiver, 5, 30, 30)
+        #test_playground.add_rect_mirror(position_ls[0], position_ls[1], position_ls[2], normal_phi,normal_theta,15,15,mirror_type='mirror')
+
+
+
+
+
+        ray_count_ls.append(test_playground.mirrors[0].ray_count)
+    test_playground.simulate()
+    test_playground.display(xlim=[-xlim, xlim], ylim=[-ylim, ylim], zlim=[0, zlim], show_mirrors=True, show_mirror_normals=True)
