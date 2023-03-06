@@ -90,6 +90,10 @@ class playground():
     def add_rect_mirror(self, x, y, z, phi, theta, a, b, mirror_type='mirror'):
         self.mirrors.append(mirror(x, y, z, phi, theta, a, b, mirror_type))
         return
+    def add_heliostat_mirror(self, x, y, z, rotvect, axislength, phi, theta, a, b, mirror_type = 'mirror'):
+        self.mirrors.append(mirror(x + axislength * rotvect[0], y + axislength * rotvect[1], z + axislength * rotvect[2], phi, theta, a, b, mirror_type))
+        self.mirrors.append(mirror(x - axislength * rotvect[0], y - axislength * rotvect[1], z - axislength * rotvect[2], phi, theta, a, b, mirror_type))
+        return
 
     def add_ray(self, p, a):
         self.rays.append(ray(p, a))
