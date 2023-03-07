@@ -216,8 +216,8 @@ def get_T(t, P, Tc, alpha=1, c=1, k=1):
     avg_T /= (t_ls[-1]-t_ls[0])
 
     # #Uncertainty in T
-    frac = 0.05
-    T_err_func = lambda t: (alpha*frac)/(c*k)
+    frac = 0.02
+    T_err_func = lambda t: (alpha*frac*P_func(t))/(c*k)
     
     return avg_T, T_func, T_err_func
 
@@ -568,7 +568,7 @@ R = Total radius of mirror configuration
 plt.ylabel('Power (Arbitrary units)')
 plt.legend(bbox_to_anchor =(0.5,-0.63), loc='lower center')
 
-plt.ylim([-100,3000])
+plt.ylim([-100,5000])
 plt.show()
 #%%
 '''
@@ -584,33 +584,38 @@ for power in power_scenario_ls:
     t_test = np.linspace(t_sunrise[0], t_sunrise[-1], 1000)
     power_test_func = CubicSpline(t_sunrise, power)
 
-    Tavg, Tfunc, Terrfunc = get_T(t_sunrise, power, Tc=Tc)
+    Tavg, Tfunc, Terrfunc = get_T(t_sunrise, power, Tc=Tc, alpha=0.5)
     Tavg_ls.append(Tavg)
     Tfunc_ls.append(Tfunc)
     Terrfunc_ls.append(Terrfunc)
 
-t_plot = np.linspace(t_sunrise[0], t_sunrise[-1])
+plt.figure(dpi=800)
+t_plot = np.linspace(t_sunrise[0], t_sunrise[-1], 100)
 for i, func in enumerate(Tfunc_ls):
     y = func(t_plot)/Tc
     y = np.array(y, dtype=float)
     plt.plot(t_plot, y, label=f'R={R_list[i]}')
     yerr = Terrfunc_ls[i](t_plot)
     yerr = np.array(yerr, dtype=float)
-    plt.fill_between(t_plot, y-yerr, y+yerr, alpha=0.5)
-plt.xlabel('Time')
+    plt.fill_between(t_plot, y-yerr/Tc, y+yerr/Tc, alpha=0.3)
+plt.xlabel('Time since sunrise (s)')
 plt.ylabel(r'$T/T_{c}$')
-plt.legend()
+plt.legend(title='Config. radius', loc='center left', bbox_to_anchor=(1, 0.5))
 plt.show()
 
+plt.figure(dpi=800)
 for i, Tavg in enumerate(Tavg_ls):
-    plt.plot(R_list[i], Tavg, '.')
+    plt.errorbar(R_list[i], Tavg, yerr=np.mean(Terrfunc_ls[i](t_plot)), fmt='.', markersize=8, capsize=2, c='black')
     plt.xlabel('R')
     plt.ylabel(r'$T_{avg}$')
+plt.show()
 
-t_plot = np.linspace(t_sunrise[0], t_sunrise[-1])
+plt.figure(dpi=800)
 for i, func in enumerate(Tfunc_ls):
     plt.plot(t_plot, 1-Tc/func(t_plot), label=f'R={R_list[i]}')
 plt.xlabel('Time')
 plt.ylabel(r'$\eta_{carnot}$')
-plt.legend()
+plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 plt.show()
+
+# %%
