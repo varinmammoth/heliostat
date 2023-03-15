@@ -45,7 +45,7 @@ print("Elapsed = %s" % (end - start))
 
 start = time.time()
 ray_ls_old = test_playground.rays
-omega_sun = 1*np.pi/180
+omega_sun = 5*np.pi/180
 ray_cone = initialise_rays_cone(ray_ls_old, 100, omega_sun, 1)
 test_playground = playground(mirror_ls, ray_cone)
 test_playground.simulate()

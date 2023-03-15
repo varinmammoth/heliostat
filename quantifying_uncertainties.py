@@ -9,10 +9,11 @@ from initialization_code_fast import *
 # %%
 mirror_dim = [1, 1]
 ground_lim = 16
-N_iter = 1000 #number of iterations to per linear_ray_density
+N_iter = 500 #number of iterations to per linear_ray_density
 
 np.random.seed(15)
-linear_ray_density_ls = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150] #list of linear ray densities to try
+linear_ray_density_ls = np.arange(10, 155, 5) #list of linear ray densities to try
+linear_ray_density_ls = linear_ray_density_ls.tolist()
 
 received_mean_ls = [] #mean number of rays received
 received_std_ls = [] #std of the number of rays received

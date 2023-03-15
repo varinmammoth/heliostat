@@ -1,7 +1,7 @@
 #%%
 import numpy as np
 import matplotlib.pyplot as plt
-from numba import typed
+from numba import typed, jit
 from numba import int32, int64, float64
 
 from playground_fast import *
@@ -203,16 +203,16 @@ def initialise_rays_cone(rays_ls_old, N, omega_sun, m):
     rays_ls_new = typed.List()
 
     for old_ray in rays_ls_old:
+        p = old_ray.p
+            
+        a = old_ray.a
+        a0 = np.tan(omega_sun/2)
+        z = (a[0]+a[1])/a[2]
+        x = np.array([-1.,-1., z], dtype=np.float64)
         for i in range(0, N):
-            p = old_ray.p
             
-            a = old_ray.a
-            a0 = np.tan(omega_sun/2)
-            z = (a[0]+a[1])/a[2]
-            x = np.array([-1.,-1., z], dtype=np.float64)
-            
-            alpha = np.random.rand()
-            beta = 2*np.pi*np.random.rand()
+            alpha = np.sqrt(np.random.uniform(0, 1))
+            beta = 2*np.pi*np.random.uniform()
 
             A = alpha*a0*x/np.linalg.norm(x)
             A = rot_vector(A, a, beta)

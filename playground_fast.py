@@ -237,7 +237,7 @@ class playground:
         return rays_received
 
 def visualize(mirror_ls, ray_ls, xlim=[-15,15], ylim=[-15,15], zlim=[-15,15], show_rays=True, show_mirrors=True, show_mirror_normals=True):
-    fig = plt.figure()
+    fig = plt.figure(dpi=800)
     ax = fig.add_subplot(projection='3d')
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
@@ -289,9 +289,9 @@ def visualize(mirror_ls, ray_ls, xlim=[-15,15], ylim=[-15,15], zlim=[-15,15], sh
                 z.append(ray.history_pz[point_i])
             ax.plot(x, y, z, color='r')
 
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
+    ax.set_xlabel('X (m)')
+    ax.set_ylabel('Y (m)')
+    ax.set_zlabel('Z (m)')
     plt.show()
     return
 
