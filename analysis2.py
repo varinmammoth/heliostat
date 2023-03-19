@@ -277,6 +277,59 @@ def ground_power_pred(ray_density, theta_ls):
         list: Prediction for total power on the ground.
     """
     return (ray_density ** 2) * np.cos(np.pi / 2 - theta_ls)
+  
+def create_circular_positions(R, num_mirrors_ls):
+    position_ls = []
+    dr = R / len(num_mirrors_ls)
+    for layer in range(0, len(num_mirrors_ls)):
+        r = (layer + 1) * dr
+        if num_mirrors_ls[layer] ==0:
+            pass
+        else:
+            d_angle = 2 * np.pi / num_mirrors_ls[layer]
+            for i in range(0, num_mirrors_ls[layer]):
+                x = r * np.cos(i * d_angle)
+                y = r * np.sin(i * d_angle)
+                position_ls.append([x, y, 5])
+    return position_ls
+
+def create_fermat_positions(R, phimin, phimax, mirror_number):
+    position_ls = []
+    x_list = []
+    y_list = []
+    phi_values = np.linspace(phimin, phimax, mirror_number)
+    for phi in phi_values:
+        x = R * np.sqrt(phi) * np.cos(phi)
+        y = R * np.sqrt(phi) * np.sin(phi)
+        position_ls.append([x, y, 5])
+        x_list.append(x)
+        y_list.append(y)
+    return position_ls
+
+def create_sunflower_positions(safety_distance, mirror_number):
+    golden = (3 - np.sqrt(5)) * np.pi
+    x_pozik = []
+    y_pozik = []
+    position_ls = []
+    for k in range(safety_distance, safety_distance + mirror_number):
+        x = np.sqrt(k+1)*np.sin((k+1)*golden)
+        y = np.sqrt(k+1)*np.cos((k+1)*golden)
+        position_ls.append([x, y, 5])
+        x_pozik.append(x)
+        y_pozik.append(y)
+    return position_ls
+
+def create_semicircular_positions(R, phimin, phimax, num_mirrors_ls):
+    position_ls = []
+    dr = R / len(num_mirrors_ls)
+    for layer in range(0, len(num_mirrors_ls)):
+        r = (layer + 1) * dr
+        phi_values = np.linspace(phimin, phimax, num_mirrors_ls[layer])
+        for phi in phi_values:
+            x = r * np.cos(phi - np.pi/2)
+            y = r * np.sin(phi - np.pi/2)
+            position_ls.append([x, y, 5])
+    return position_ls
 
 
 def mirror_power_pred(ray_density, ground_area, mirrormaterial, theta_ls):
