@@ -1,6 +1,7 @@
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.style as style
 
 from numba import jit
 from numba import njit
@@ -396,13 +397,13 @@ for p in range(len(lat_list)):
 
             day = ts.utc(2022, mo, 21)  # Date
 
-            t, t_sunrise, phi, theta, distance = get_solar_positions(day, lat_list[p], long_list[p], elevation_list[p], 5)
+            t, t_sunrise, phi, theta, distance = get_solar_positions(day, lat_list[p], long_list[p], elevation_list[p], 20)
 
             for i, val in enumerate(theta):
                 if val < 0:
                     theta[i] = 0
             # %%
-            ray_density = 10
+            ray_density = 170
             ground_length = 30
             mirror_material = 44
             mirror_num_ls = [[4, 8, 12, 24]] #circular
@@ -588,43 +589,48 @@ for p in range(len(lat_list)):
 
     f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey='row', figsize=(14,8), dpi=100)
 
-    plt.suptitle(f'Different Mirror Arrangements in {placelist[p]}', fontsize = '25')
+       plt.figure(figsize=(12, 8))
 
+    style.use('fivethirtyeight')
 
-    ax1.bar(X_axis - 0.4, simulated_power_on_the_day_list[0 + 4*p], 0.4, label = 'Simulated')
-    ax1.bar(months, expected_power_on_the_day_list[0 + 4*p], 0.4, label = 'Expected')
-    ax2.bar(X_axis - 0.4, simulated_power_on_the_day_list[1 + 4*p], 0.4)
-    ax2.bar(months, expected_power_on_the_day_list[1 + 4*p], 0.4)
-    ax3.bar(X_axis - 0.4, simulated_power_on_the_day_list[2 + 4*p], 0.4)
-    ax3.bar(months, expected_power_on_the_day_list[2 + 4*p], 0.4)
-    ax4.bar(X_axis - 0.4, simulated_power_on_the_day_list[3 + 4*p], 0.4)
-    ax4.bar(months, expected_power_on_the_day_list[3 + 4*p], 0.4)
-    ax1.title.set_text('Traditional Circular')
-    ax2.title.set_text('Sunflower')
-    ax3.title.set_text('Semicircular')
-    ax4.title.set_text('Radial Circular')
+    width = 0.17
 
-    ax1.grid(axis = 'y')
-    ax2.grid(axis = 'y')
-    ax3.grid(axis = 'y')
-    ax4.grid(axis = 'y')
+    plt.bar(X_axis - 2 * width, simulated_power_on_the_day_list[0 + 4 * p] / np.max(saverlistsim),
+            width,
+            label='Simulated Traditional Circular')
+    plt.bar(X_axis - width, simulated_power_on_the_day_list[1 + 4 * p] / np.max(saverlistsim), width,
+            label='Simulated Sunflower')
+    plt.bar(X_axis + width, simulated_power_on_the_day_list[2 + 4 * p] / np.max(saverlistsim), width,
+            label='Simulated Semicircular')
+    plt.bar(X_axis + 2 * width, simulated_power_on_the_day_list[3 + 4 * p] / np.max(saverlistsim),
+            width, label='Simulated Radial Circular')
 
-    f.text(0.5, 0.04, 'Date', ha='center', fontsize = '17')
-    f.text(0.04, 0.5, 'Received Power (Arbitrary Units)', va='center', rotation='vertical', fontsize = '17')
+    plt.bar(months, expected_power_on_the_day_list[1 + 4 * p] / np.max(saverlistsim), width,
+            label='Expected /Lower Estimate/')
 
-    f.legend()
+    plt.grid(axis='x')
+
+    plt.legend()
+
+    plt.title(f'Different Mirror Arrangements in {placelist[p]}', fontsize='25')
+
+    plt.xlabel('Date', ha='center', fontsize='17')
+    plt.ylabel('Received Power (Normalized)', loc='center', rotation='vertical', fontsize='17')
 
 
     plt.savefig(f'test_plots\_test_powerbar_{placelist[p]}.png')
     plt.clf()
 
+    # print('EXPECTED:',expected_power_on_the_day_list)
+    # print('SIMULATED:',simulated_power_on_the_day_list)
 
-with open("simulated_power_list.pkl", "wb") as fp:   #Pickling
-    pickle.dump(simulated_power_on_the_day_list, fp)
 
-np.savetxt("simulated_power_list.csv", simulated_power_on_the_day_list, delimiter=",")
+    with open(f"simulated_power_list{placelist[p]}.pkl", "wb") as fp:   #Pickling
+        pickle.dump(saverlistsim, fp)
 
-with open("expected_power_list.pkl", "wb") as fp:   #Pickling
-    pickle.dump(expected_power_on_the_day_list, fp)
+    np.savetxt(f"simulated_power_list{placelist[p]}.csv", saverlistsim, delimiter=",")
 
-np.savetxt("expected_power_list.csv", expected_power_on_the_day_list, delimiter=",")
+    with open(f"expected_power_list{placelist[p]}.pkl", "wb") as fp:   #Pickling
+        pickle.dump(saverlistexp, fp)
+
+    np.savetxt(f"expected_power_list{placelist[p]}.csv", saverlistexp, delimiter=",")
