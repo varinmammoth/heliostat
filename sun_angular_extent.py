@@ -303,7 +303,7 @@ def mirror_power_pred(ray_density, ground_area, mirror_area, N_mirrors, theta_ls
 receiver
 To test ray cone effect
 '''
-N_cone = 100
+N_cone = 300
 N_trials = 3
 distance_ls = np.arange(-400, 100, 50)
 angle_count = []
@@ -331,11 +331,19 @@ for angle in angle_ls:
     print(f'{angle} done!')
 
 # %%
+from scipy.optimize import curve_fit
+#%%
+
 frac_estimate = lambda x, a:  a**2/(a+2*x*np.tan(0.5*np.pi/180/2))**2
+frac_estimate_circle = lambda x, a: a**2/np.pi/(a+x*np.tan(0.5*np.pi/180/2))**2
+frac_estimate_rounded = lambda x, a: a**2/((a+2*x*np.tan(0.5*np.pi/180/2))**2 - (4-np.pi)*(x*np.tan(0.5*np.pi/180/2))**2)
+
 x_plot = np.linspace(0, 550, 100)
 
 plt.figure(figsize=(7,5), dpi=800)
-plt.plot(x_plot, frac_estimate(x_plot, 1), c='grey', alpha=0.8, label=r'$Estimate$')
+plt.plot(x_plot, frac_estimate(x_plot, 1), c='grey', alpha=0.8, label=r'$Square\ Est.$')
+plt.plot(x_plot, frac_estimate_circle(x_plot, 1), '--', c='grey', alpha=0.8, label=r'$Circle\ Est.$')
+plt.plot(x_plot, frac_estimate_rounded(x_plot, 1), linestyle='dotted', c='grey', alpha=0.8, label=r'$Rounded\ Est.$')
 
 
 count = np.array(angle_count[0])

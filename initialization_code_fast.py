@@ -139,6 +139,20 @@ def create_circular_positions(R, num_mirrors_ls):
             position_ls.append([x, y, 5])
     return position_ls
 
+def create_sunflower_positions(mirror_number, mult):
+    safety_distance = 0
+    golden = (3 - np.sqrt(5)) * np.pi
+    x_pozik = []
+    y_pozik = []
+    position_ls = []
+    for k in range(safety_distance, safety_distance + mirror_number):
+        x = mult*np.sqrt(k+1)*np.sin((k+1)*golden)
+        y = mult*np.sqrt(k+1)*np.cos((k+1)*golden)
+        position_ls.append([x, y, 5])
+        x_pozik.append(x)
+        y_pozik.append(y)
+    return position_ls
+
 def initialise_mirrors_optimal(position_ls, receiver_position, phi, theta, a=4, b=4):
     def rotation(t, u):
         return np.matrix([[np.cos(t) + u[0]**2 * (1 - np.cos(t)), u[0]*u[1]*(1 - np.cos(t)) - u[2]*np.sin(t), u[0]*u[2]*(1 - np.cos(t)) + u[1]*np.sin(t)],

@@ -729,3 +729,93 @@ plt.show()
 
 
 # %%
+'''
+sunflower configuration
+'''
+day = ts.utc(2022, 12, 25)  #Date
+lat = '13.7563 N' #Location
+long = '100.5018 E'
+elevation = 1.5 #Elevation
+t, t_sunrise, phi, theta, distance = get_solar_positions(day, lat, long, elevation, 20)
+
+for i, val in enumerate(theta):
+    if val < 0:
+        theta[i] = 0
+#%%
+ray_density = 150
+ground_length = 30
+mirror_num_ls = [4,8,16,32,64,128]
+mirror_dim = [1.,1.]
+receiver_dim = [1.,1.,1.]
+receiver_pos = [0.,0.,15.]
+
+#Performance of same mirror config, but placing the mirrors farther from receiver/from each other
+scale_ls = np.linspace(0.35, 0.9, 9)
+R_list = []
+for scale in scale_ls:
+    position_ls = create_sunflower_positions(252, scale)
+    R = 0
+    for pos in position_ls:
+        R = max(R, np.sqrt(pos[0]**2 + pos[1]**2))
+    R_list.append(R)
+#%%
+#scenario1 label in csv
+power_scenario_ls = []
+count_scenario_ls = []
+# power_scenario_ls = load_pickle('power_scenario_ls1')
+#%%
+start = time.time()
+for scale in scale_ls:
+    position_ls = create_sunflower_positions(252, scale)
+    t_out, power_ls, count_ls = performance_no_cone_2step(t_sunrise, position_ls, receiver_pos, mirror_dim,receiver_dim,phi,theta,ray_density,ground_length)
+    power_scenario_ls.append(power_ls)
+    count_scenario_ls.append(count_ls)
+end = time.time()
+print(f'Elapsed time: {end-start}')
+#%%
+#Load the pickle file here, so don't need to rerun
+#....code to loak pickle file....
+
+#Ground power
+ground_power_ls = ground_power(ray_density, theta, phi, ground_length)
+
+#Estimate predictions
+# from estimate_predictions import *
+ground_power_pred_ls = ground_power_pred(ray_density, theta)
+mirror_power_upperbound_ls = mirror_power_pred(ray_density, ground_length**2, mirror_dim[0]*mirror_dim[1], np.sum(mirror_num_ls), theta)
+#%%
+#Plot the result
+max_power = np.max(ground_power_pred_ls)
+P_avg_ls = []
+plt.clf()
+plt.figure(dpi=800, figsize=(7,5))
+t = np.linspace(0, t_sunrise[-1], 40000)
+plt.plot(t_sunrise, mirror_power_upperbound_ls/max_power, '--', c='blue', label=r'$P_{receiver}^{pred.}/P_{max}$')
+for radius_i, radius in enumerate(R_list):
+    plt.plot(t_sunrise, power_scenario_ls[radius_i]/max_power, '.', color="C{}".format(radius_i))
+    func_spline = CubicSpline(t_sunrise, power_scenario_ls[radius_i])
+    def func(t):
+        output = func_spline(t)
+        out = []
+        for i in output:
+            if i < 0:
+                out.append(0)
+            else:
+                out.append(i)
+        return np.array(out)
+    y = func(t)/max_power
+    yerr = 1.02*y - y
+    plt.plot(t, y, color="C{}".format(radius_i), label=f'$R={{{"%.2f" % radius}}}\ m.$')
+    plt.fill_between(t, y-yerr, y+yerr, alpha=0.3)
+    P_avg_ls.append(avg_power(t_sunrise, power_scenario_ls[radius_i]))
+
+plt.plot(t_sunrise, ground_power_pred_ls/max_power, '--', c='grey', label=r'$P_{ground}^{pred.}/P_{max}$')
+plt.plot(t_sunrise, ground_power_ls/max_power, '.', c='black', label=r'$P_{ground}^{sim.}/P_{max}$')
+
+plt.xlabel(r'$t_{sunrise}\ (s)$')
+plt.ylabel(r'$P/P_{max}$')
+plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+plt.ylim([-0.01,0.32])
+plt.show()
+# %%

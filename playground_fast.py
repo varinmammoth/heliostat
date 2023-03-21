@@ -292,6 +292,9 @@ def visualize(mirror_ls, ray_ls, xlim=[-15,15], ylim=[-15,15], zlim=[-15,15], sh
     ax.set_xlabel('X (m)')
     ax.set_ylabel('Y (m)')
     ax.set_zlabel('Z (m)')
+    ax.set_zlim(0,20)
     plt.show()
     return
 
+
+# %%

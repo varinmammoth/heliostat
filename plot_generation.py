@@ -25,7 +25,7 @@ mirror_num_ls = [4,8,16,32]
 mirror_dim = [1.,1.]
 receiver_dim = [1.,1.,1.]
 receiver_pos = [0.,0.,15.]
-position_ls = create_circular_positions(15, mirror_num_ls)
+position_ls = create_sunflower_positions(100, 1)
 # %%
 mirror_ls = initialise_mirrors_optimal(position_ls, receiver_pos, theta=np.pi/4, phi=0,  a=mirror_dim[0], b=mirror_dim[1])
 mirror_ls = add_receiver(mirror_ls, receiver_pos, *receiver_dim)
