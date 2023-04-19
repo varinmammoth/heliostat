@@ -375,9 +375,15 @@ plt.show()
 # %%
 P_avg_ls = np.array(P_avg_ls)
 plt.figure(dpi=800, figsize=(7,5))
-plt.errorbar(N_ls, P_avg_ls/max_power, yerr=0.003, fmt='.', c='black', capsize=2)
+fit, cov = np.polyfit(N_ls, P_avg_ls/max_power, 1, cov=True)
+func = np.poly1d(fit)
+x = np.linspace(4, 31, 3)
+plt.plot(x, func(x), '--', label=f'$y={"%.4f" % fit[0]}x+{"%.4f" % fit[1]}$')
+plt.errorbar(N_ls, P_avg_ls/max_power, yerr=0.003, fmt='.', c='black', capsize=2, label='Data')
+plt.xlim([4,31])
 plt.xlabel(r'$N$')
 plt.ylabel(r'$\langle P \rangle_{t}/P_{max}$')
+plt.legend()
 plt.show()
 
 # %%

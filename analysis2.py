@@ -13,7 +13,7 @@ from scipy.stats import chisquare
 from playground_fast import *
 from initialization_code_fast import *
 
-# from plot_generation import load_pickle
+from plot_generation import load_pickle
 #%%
 plt.rcParams['mathtext.fontset'] = 'custom'
 plt.rcParams['mathtext.rm'] = 'Bitstream Vera Sans'
@@ -121,6 +121,12 @@ def performance_no_cone_2step(t_ls, position_ls, receiver_pos, mirror_dim, recei
         playground1 = playground(mirror_ls, ray_ls)
         playground1.simulate()
 
+        mirror_ls = playground1.mirrors
+        count_subls = []
+        for j in mirror_ls:
+            count_subls.append(j.ray_count)
+        count_ls.append(count_subls)
+
         mirror_ls = typed.List()
         mirror_ls = add_receiver(mirror_ls, receiver_pos, *receiver_dim)
         ray_ls_new = typed.List()
@@ -133,12 +139,6 @@ def performance_no_cone_2step(t_ls, position_ls, receiver_pos, mirror_dim, recei
         power = playground1.get_receiver_power()*np.cos(np.pi/2-theta_ls[i])
         power_ls.append(power)
         output_t_ls.append(t_ls[i])
-
-        mirror_ls = playground1.mirrors
-        count_subls = []
-        for j in mirror_ls:
-            count_subls.append(j.ray_count)
-        count_ls.append(count_subls)
 
         print(f'Iteration: {i+1}/{len(phi_ls)}')
     
@@ -568,7 +568,7 @@ end = time.time()
 print(f'Elapsed time: {end-start}')
 #%%
 #Load the pickle file here, so don't need to rerun
-#....code to loak pickle file....
+power_scenario_ls = load_pickle('sunflower_london_summer')
 
 #Ground power
 ground_power_ls = ground_power(ray_density, theta, phi, ground_length)
@@ -599,7 +599,7 @@ for radius_i, radius in enumerate(R_list):
         return np.array(out)
     y = func(t)/max_power
     yerr = 1.02*y - y
-    plt.plot(t, y, color="C{}".format(radius_i), label=f'$R={{{radius}}}\ m.$')
+    plt.plot(t, y, color="C{}".format(radius_i), label=f'$R={{{"%.2f" % radius}}}\ m.$')
     plt.fill_between(t, y-yerr, y+yerr, alpha=0.3)
     P_avg_ls.append(avg_power(t_sunrise, power_scenario_ls[radius_i]))
 
@@ -610,7 +610,7 @@ plt.xlabel(r'$t_{sunrise}\ (s)$')
 plt.ylabel(r'$P/P_{max}$')
 plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-plt.ylim([-0.01,0.3])
+plt.ylim([-0.01,1.03])
 plt.show()
 
 #%%
@@ -732,9 +732,9 @@ plt.show()
 '''
 sunflower configuration
 '''
-day = ts.utc(2022, 12, 25)  #Date
-lat = '13.7563 N' #Location
-long = '100.5018 E'
+day = ts.utc(2022, 6, 21)  #Date
+lat = '51.5072 N' #Location
+long = '0.1276 W'
 elevation = 1.5 #Elevation
 t, t_sunrise, phi, theta, distance = get_solar_positions(day, lat, long, elevation, 20)
 
@@ -775,6 +775,7 @@ print(f'Elapsed time: {end-start}')
 #%%
 #Load the pickle file here, so don't need to rerun
 #....code to loak pickle file....
+power_scenario_ls = load_pickle('sunflower_bangkok')
 
 #Ground power
 ground_power_ls = ground_power(ray_density, theta, phi, ground_length)
@@ -816,6 +817,6 @@ plt.xlabel(r'$t_{sunrise}\ (s)$')
 plt.ylabel(r'$P/P_{max}$')
 plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-plt.ylim([-0.01,0.32])
+plt.ylim([-0.01,1.03])
 plt.show()
 # %%

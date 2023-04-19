@@ -36,7 +36,7 @@ mirror_ls = typed.List()
 ground = mirror(0,0,0,0,np.pi/2,15,15, 'ground')
 mirror_ls.append(ground)
 ray_ls = typed.List()
-ray_ls.append(ray(np.array([0.,0.,0.]), np.array([-1.,0.,1.]), 1))
+ray_ls.append(ray(np.array([0.,0.,0.]), np.array([1.,-1.,2.]), 1))
 test_playground = playground(mirror_ls, ray_ls)
 test_playground.simulate()
 
@@ -46,13 +46,14 @@ print("Elapsed = %s" % (end - start))
 start = time.time()
 ray_ls_old = test_playground.rays
 omega_sun = 5*np.pi/180
-ray_cone = initialise_rays_cone(ray_ls_old, 100, omega_sun, 1)
+ray_cone = initialise_rays_cone(ray_ls_old, 15, omega_sun, 1)
 test_playground = playground(mirror_ls, ray_cone)
 test_playground.simulate()
 end = time.time()
 print("Elapsed = %s" % (end - start))
-
-%matplotlib ipympl
+#%%
+# %matplotlib ipympl
 visualize(*test_playground.get_history(), show_rays=True)
+plt.show()
 # %%
 

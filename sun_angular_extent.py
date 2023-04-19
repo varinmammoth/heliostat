@@ -309,7 +309,7 @@ distance_ls = np.arange(-400, 100, 50)
 angle_count = []
 angle_count_std = []
 angle_ls = [0, np.pi/8, np.pi/6, np.pi/4]
-
+#%%
 for angle in angle_ls:
     count = []
     count_std = []
@@ -363,6 +363,81 @@ plt.xlabel(r'$Distance\ from\ receiver\ (m)$')
 plt.ylabel(r'$P/P_{no\ cone}$')
 plt.xlim([0, 520])
 plt.ylim([0, 1])
+plt.legend()
+plt.show()
+# %%
+'''
+spot diagram
+'''
+from scipy.spatial import ConvexHull
+import matplotlib
+
+rect = matplotlib.patches.Rectangle((-0.5, -0.5),
+                                     1, 1,
+                                     fill=None, alpha=1)
+
+
+#%%
+from scipy.spatial import ConvexHull
+import matplotlib
+
+distance_ls = np.arange(-400, 100, 50)
+
+hull_area_ls = []
+for distance in distance_ls:
+
+    mirror_ls = typed.List()
+    mirror_ls.append(mirror(0., 0., distance, 0., np.pi/2-0, 10000., 10000.))
+    ray_ls = initialize_rays_parallel(1, xlim=[-0.5, 0.5], ylim=[-0.5,0.5], ray_density=20, phi=0., theta=np.pi/2)
+    ray_ls = initialise_rays_cone(ray_ls, N_cone, 0.5*np.pi/180, 1)
+    playground1 = playground(mirror_ls, ray_ls)
+    playground1.simulate()
+
+    points = []
+
+    for ray in playground1.rays:
+        points.append([ray.p[0], ray.p[1]])
+
+    plt.figure(figsize=(5,5), dpi=500)
+    currentAxis = plt.gca()
+    points = np.array(points)
+    hull = ConvexHull(points)
+    currentAxis.plot(points[:, 0], points[:, 1], '.')
+    for simplex in hull.simplices:
+        currentAxis.plot(points[simplex, 0], points[simplex, 1], 'k-')
+    currentAxis.add_patch(matplotlib.patches.Rectangle((-0.5, -0.5),
+                                        1, 1,
+                                        color='red', alpha=1, zorder=2, fill=None))
+
+    currentAxis.set_xlim(xmin=-3, xmax=3)
+    currentAxis.set_ylim(ymin=-3, ymax=3)
+    currentAxis.set_aspect('equal',adjustable='box')
+    currentAxis.set_xlabel('y')
+    currentAxis.set_ylabel('z')
+    currentAxis.set_title(f'd={100-distance}')
+    plt.show()
+
+    hull_area_ls.append(hull.volume)
+
+    print('yes')
+
+
+# %%
+hull_area_ls = np.array(hull_area_ls)
+
+frac_estimate = lambda x, a:  a**2/(a+2*x*np.tan(0.5*np.pi/180/2))**2
+frac_estimate_circle = lambda x, a: a**2/np.pi/(a+x*np.tan(0.5*np.pi/180/2))**2
+frac_estimate_rounded = lambda x, a: a**2/((a+2*x*np.tan(0.5*np.pi/180/2))**2 - (4-np.pi)*(x*np.tan(0.5*np.pi/180/2))**2)
+
+x_plot = np.linspace(0, 550, 100)
+
+plt.figure(figsize=(7,5), dpi=800)
+plt.plot(x_plot, frac_estimate(x_plot, 1), c='grey', alpha=0.8, label=r'$Square\ Est.$')
+plt.plot(x_plot, frac_estimate_circle(x_plot, 1), '--', c='grey', alpha=0.8, label=r'$Circle\ Est.$')
+plt.plot(x_plot, frac_estimate_rounded(x_plot, 1), linestyle='dotted', c='grey', alpha=0.8, label=r'$Rounded\ Est.$')
+
+plt.plot(100-distance_ls, 1/hull_area_ls, '.', label='Convex Hull Calc.')
+
 plt.legend()
 plt.show()
 # %%
