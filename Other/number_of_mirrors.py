@@ -13,8 +13,13 @@ from scipy.stats import chisquare
 from playground_fast import *
 from initialization_code_fast import *
 
-from plot_generation import load_pickle
+import pickle
 #%%
+def load_pickle(filename: str):
+    with open(f'{filename}.pkl', 'rb') as f:
+        data = pickle.load(f)
+    return data
+
 plt.rcParams['mathtext.fontset'] = 'custom'
 plt.rcParams['mathtext.rm'] = 'Bitstream Vera Sans'
 plt.rcParams['mathtext.it'] = 'Bitstream Vera Sans:italic'
@@ -296,148 +301,185 @@ def mirror_power_pred(ray_density, ground_area, mirror_area, N_mirrors, theta_ls
         list: Prediction for the upperbound to the power received by all mirrors.
     """
     return (ray_density**2)/(ground_area)*N_mirrors*mirror_area*np.cos(np.pi/2-theta_ls)
-#%%
-
-'''
-1 mirror, but keep moving it farther and farther away from
-receiver
-To test ray cone effect
-'''
-N_cone = 300
-N_trials = 3
-distance_ls = np.arange(-400, 100, 50)
-angle_count = []
-angle_count_std = []
-angle_ls = [0, np.pi/8, np.pi/6, np.pi/4]
-#%%
-for angle in angle_ls:
-    count = []
-    count_std = []
-    for distance in distance_ls:
-        temp = []
-        for i in range(0, N_trials):
-            mirror_ls = typed.List()
-            mirror_ls.append(mirror(0., 0., float(distance), 0., np.pi/2-angle, 1., 1.))
-            ray_ls = initialize_rays_parallel(1, xlim=[-0.5, 0.5], ylim=[-0.5,0.5], ray_density=20, phi=0., theta=np.pi/2)
-            ray_ls = initialise_rays_cone(ray_ls, N_cone, 0.5*np.pi/180, 1)
-            playground1 = playground(mirror_ls, ray_ls)
-            playground1.simulate()
-            temp.append(playground1.mirrors[-1].ray_count/N_cone)
-            print('yes')
-        count.append(np.mean(temp))
-        count_std.append(np.std(temp)/np.sqrt(N_trials))
-    angle_count.append(count)
-    angle_count_std.append(count_std)
-    print(f'{angle} done!')
-
 # %%
-from scipy.optimize import curve_fit
+N_ls = np.array([8, 22, 28])
+SA = 100 #surface area
+
+day = ts.utc(2022, 6, 21) #Date
+lat = '13.7563 N' #Location
+long = '100.5018 E'
+elevation = 1.5 #Elevation
+t, t_sunrise, phi, theta, distance = get_solar_positions(day, lat, long, elevation, 40)
+
+for i, val in enumerate(theta):
+    if val < 0:
+        theta[i] = 0
+
+ray_density = 150
+ground_length = 30
+receiver_dim = [2.,2.,2.]
+receiver_pos = [0.,0.,15.]
 #%%
+power_scenario_ls = []
+start = time.time()
+for N in N_ls:
+    position_ls = create_circular_positions(13, [N])
+    mirror_dim = [np.sqrt(100/N), np.sqrt(100/N)]
+    t_out, power_ls, count_ls = performance_no_cone_2step(t_sunrise, position_ls, receiver_pos, mirror_dim,receiver_dim,phi,theta,ray_density,ground_length)
+    power_scenario_ls.append(power_ls)
+end = time.time()
+print(f'Elapsed time: {end-start}')
+#%%
+#Ground power
+ground_power_ls = ground_power(ray_density, theta, phi, ground_length)
 
-frac_estimate = lambda x, a:  a**2/(a+2*x*np.tan(0.5*np.pi/180/2))**2
-frac_estimate_circle = lambda x, a: a**2/np.pi/(a+x*np.tan(0.5*np.pi/180/2))**2
-frac_estimate_rounded = lambda x, a: a**2/((a+2*x*np.tan(0.5*np.pi/180/2))**2 - (4-np.pi)*(x*np.tan(0.5*np.pi/180/2))**2)
+#Estimate predictions
+# from estimate_predictions import *
+ground_power_pred_ls = ground_power_pred(ray_density, theta)
+# mirror_power_upperbound_ls = mirror_power_pred(ray_density, ground_length**2, mirror_dim[0]*mirror_dim[1], np.sum(N_), theta)
+# %%
+#Plot the result
+max_power = np.max(ground_power_pred_ls)
+P_avg_ls = []
+plt.clf()
+plt.figure(dpi=800, figsize=(7,5))
+t = np.linspace(0, t_sunrise[-1], 40000)
 
-x_plot = np.linspace(0, 550, 100)
+for N_i, N in enumerate(N_ls):
+    plt.plot(t_sunrise, power_scenario_ls[N_i]/max_power, '.', color="C{}".format(N_i))
+    func_spline = CubicSpline(t_sunrise, power_scenario_ls[N_i])
+    def func(t):
+        output = func_spline(t)
+        out = []
+        for i in output:
+            if i < 0:
+                out.append(0)
+            else:
+                out.append(i)
+        return np.array(out)
+    y = func(t)/max_power
+    yerr = np.ones(len(y))*0.003
+    plt.plot(t, y, color="C{}".format(N_i), label=f'$N={{{N}}}\ $')
+    plt.fill_between(t, y-yerr, y+yerr, alpha=0.3)
+    P_avg_ls.append(avg_power(t_sunrise, power_scenario_ls[N_i]))
 
-plt.figure(figsize=(7,5), dpi=800)
-plt.plot(x_plot, frac_estimate(x_plot, 1), c='grey', alpha=0.8, label=r'$Square\ Est.$')
-plt.plot(x_plot, frac_estimate_circle(x_plot, 1), '--', c='grey', alpha=0.8, label=r'$Circle\ Est.$')
-plt.plot(x_plot, frac_estimate_rounded(x_plot, 1), linestyle='dotted', c='grey', alpha=0.8, label=r'$Rounded\ Est.$')
+# plt.plot(t_sunrise, ground_power_pred_ls/max_power, '--', c='grey', label=r'$P_{ground}^{pred.}/P_{max}$')
+# plt.plot(t_sunrise, ground_power_ls/max_power, '.', c='black', label=r'$P_{ground}^{sim.}/P_{max}$')
 
+plt.xlabel(r'$t_{sunrise}\ (s)$')
+plt.ylabel(r'$P/P_{max}$')
+plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-count = np.array(angle_count[0])
-count_std = np.array(angle_count_std[0])
-plt.errorbar(100-distance_ls, count/400, yerr=count_std/15, fmt='.', capsize=2, label=r'$\alpha=0$')
-count = np.array(angle_count[1])
-count_std = np.array(angle_count_std[1])
-plt.errorbar(100-distance_ls, count/400, yerr=count_std/15, fmt='.', capsize=2, label=r'$\alpha=\pi/8$')
-count = np.array(angle_count[2])
-count_std = np.array(angle_count_std[2])
-plt.errorbar(100-distance_ls, count/400, yerr=count_std/15, fmt='.', capsize=2, label=r'$\alpha=\pi/6$')
-count = np.array(angle_count[3])
-count_std = np.array(angle_count_std[3])
-plt.errorbar(100-distance_ls, count/400, yerr=count_std/15, fmt='.', capsize=2, label=r'$\alpha=\pi/4$')
-
-plt.xlabel(r'$Distance\ from\ receiver\ (m)$')
-plt.ylabel(r'$P/P_{no\ cone}$')
-plt.xlim([0, 520])
-plt.ylim([0, 1])
-plt.legend()
+plt.ylim([-0.001,0.06])
 plt.show()
 # %%
+P_avg_ls = np.array(P_avg_ls)
+plt.figure(dpi=800, figsize=(7,5))
+fit, cov = np.polyfit(N_ls[0:7], P_avg_ls[0:7]/max_power, 1, cov=True)
+func = np.poly1d(fit)
+x = np.linspace(0, 31, 3)
+plt.hlines(y=P_avg_ls[-1]/max_power, xmin=0, xmax=31, linestyle='--', color='red', label=r'$y = 0.061 \pm 0.008$')
+plt.plot(x, func(x), '--', label=r'y =$(0.0040 \pm 0.0001) \cdot x + (0.005 \pm 0.001$)')
+plt.errorbar(N_ls, P_avg_ls/max_power, yerr=0.003, fmt='.', c='black', capsize=2, label='Data')
+plt.xlim([0,31])
+plt.ylim([0, 0.07])
+plt.xlabel(r'$N$')
+plt.ylabel(r'$\langle P \rangle_{t}/P_{max}$')
+plt.legend()
+plt.show()
+
+# %%
+max_power = 22160.628010443357
+N_ls = [ 2,  5, 10, 15, 20, 25, 30, 3,  7, 12, 17, 13, 27, 8, 22, 28]
+P_avg_ls = [ 250.17785637,  597.59489366, 1026.88536683, 1274.16033753,
+       1345.14229546, 1369.5378347 , 1371.83414451, 387.5590031540344,
+ 789.0953157407229,
+ 1147.8456576219887,
+ 1318.553255816324,
+ 1202.9024104575356,
+ 1371.0015259542845, 842.0908775659841, 1359.88481042715, 1370.1092481036121]
+
+P_avg_ls = [x for _, x in sorted(zip(N_ls, P_avg_ls))]
+N_ls.sort()
+# %%
 '''
-spot diagram
+Spot diagrams
 '''
 from scipy.spatial import ConvexHull
 import matplotlib
 
-rect = matplotlib.patches.Rectangle((-0.5, -0.5),
-                                     1, 1,
-                                     fill=None, alpha=1)
-
-
-#%%
-from scipy.spatial import ConvexHull
-import matplotlib
-
-distance_ls = np.arange(-400, 100, 50)
+hull_ls = []
+points_ls = []
 
 hull_area_ls = []
-for distance in distance_ls:
 
-    mirror_ls = typed.List()
-    mirror_ls.append(mirror(0., 0., distance, 0., np.pi/2-0, 10000., 10000.))
-    ray_ls = initialize_rays_parallel(1, xlim=[-0.5, 0.5], ylim=[-0.5,0.5], ray_density=20, phi=0., theta=np.pi/2)
-    ray_ls = initialise_rays_cone(ray_ls, N_cone, 0.5*np.pi/180, 1)
+N_ls = [5, 7, 10, 12, 15, 17, 20, 22, 25, 30]
+
+# N_ls = [5]
+# plt.figure(figsize=(5,5), dpi=500)
+# currentAxis = plt.gca()
+for i, N in enumerate(N_ls):
+    position_ls = create_circular_positions(13, [N])
+    mirror_dim = [np.sqrt(100/N), np.sqrt(100/N)]
+    
+    mirror_ls = initialise_mirrors_optimal(position_ls, [-30,0,15], theta=np.pi/4, phi=0,  a=mirror_dim[0], b=mirror_dim[1])
+    # mirror_ls = add_receiver(mirror_ls, [0,0,15], 5, 5, 5)
+    mirror_ls.append(mirror(-30., 0., 0., 0., 0, 10000., 10000.))
+    ray_ls = initialize_rays_parallel(len(mirror_ls), xlim=[-15, 15], ylim=[-15,15], ray_density=150, phi=0, theta=np.pi/4)
     playground1 = playground(mirror_ls, ray_ls)
     playground1.simulate()
 
     points = []
+    for r in playground1.rays:
+        if r.p[2] > 0:
+            points.append([r.p[1], r.p[2]])
+    hull = ConvexHull(points)
+    hull_ls.append(hull)
+    points_ls.append(points)
 
-    for ray in playground1.rays:
-        points.append([ray.p[0], ray.p[1]])
-
+    points = np.array(points)
     plt.figure(figsize=(5,5), dpi=500)
     currentAxis = plt.gca()
     points = np.array(points)
     hull = ConvexHull(points)
     currentAxis.plot(points[:, 0], points[:, 1], '.')
     for simplex in hull.simplices:
-        currentAxis.plot(points[simplex, 0], points[simplex, 1], 'k-')
-    currentAxis.add_patch(matplotlib.patches.Rectangle((-0.5, -0.5),
-                                        1, 1,
-                                        color='red', alpha=1, zorder=2, fill=None))
+        currentAxis.plot(points[simplex, 0], points[simplex, 1], color='red')
+    # currentAxis.plot(points[simplex, 0], points[simplex, 1], label=f'$N={{{N}}}$', color="C{}".format(i))
+        
+    # currentAxis.add_patch(matplotlib.patches.Rectangle((-0.5, -0.5),
+    #                                     1, 1,
+    #                                     color='red', alpha=1, zorder=2, fill=None))
 
-    currentAxis.set_xlim(xmin=-3, xmax=3)
-    currentAxis.set_ylim(ymin=-3, ymax=3)
+    currentAxis.set_xlim(xmin=-4, xmax=4)
+    currentAxis.set_ylim(ymin=12, ymax=18)
     currentAxis.set_aspect('equal',adjustable='box')
     currentAxis.set_xlabel('y')
     currentAxis.set_ylabel('z')
-    currentAxis.set_title(f'd={100-distance}')
-    plt.show()
+    currentAxis.set_title(f'$N={{{N}}}$')
+# currentAxis.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
     hull_area_ls.append(hull.volume)
-
-    print('yes')
-
-
+    plt.show()
+    
 # %%
-hull_area_ls = np.array(hull_area_ls)
+currentAxis = plt.gca()
+points_ls = np.array(points_ls)
+for i, h in enumerate(hull_ls):
+    currentAxis.plot(points[:, 0], points[:, 1], '.')
+    for simplex in h.simplices:
+        currentAxis.plot(points_ls[i][simplex, 0], points_ls[i][simplex, 1], 'k-')
 
-frac_estimate = lambda x, a:  a**2/(a+2*x*np.tan(0.5*np.pi/180/2))**2
-frac_estimate_circle = lambda x, a: a**2/np.pi/(a+x*np.tan(0.5*np.pi/180/2))**2
-frac_estimate_rounded = lambda x, a: a**2/((a+2*x*np.tan(0.5*np.pi/180/2))**2 - (4-np.pi)*(x*np.tan(0.5*np.pi/180/2))**2)
-
-x_plot = np.linspace(0, 550, 100)
-
-plt.figure(figsize=(7,5), dpi=800)
-plt.plot(x_plot, frac_estimate(x_plot, 1), c='grey', alpha=0.8, label=r'$Square\ Est.$')
-plt.plot(x_plot, frac_estimate_circle(x_plot, 1), '--', c='grey', alpha=0.8, label=r'$Circle\ Est.$')
-plt.plot(x_plot, frac_estimate_rounded(x_plot, 1), linestyle='dotted', c='grey', alpha=0.8, label=r'$Rounded\ Est.$')
-
-plt.plot(100-distance_ls, 1/hull_area_ls, '.', label='Convex Hull Calc.')
-
-plt.legend()
+plt.show()
+# %%
+plt.figure(dpi=500)
+fit, cov = np.polyfit(100/np.array(N_ls), hull_area_ls, 1, cov=True)
+func = np.poly1d(fit)
+x = np.linspace(0, 22, 3)
+plt.plot(x, func(x), label=r'$$')
+plt.errorbar(100/np.array(N_ls), hull_area_ls, yerr=[0.5]*len(hull_area_ls), fmt='.', capsize=2, c='black', label='Data')
+plt.xlabel('Area of a single mirror')
+plt.ylabel('Convex hull area')
+plt.xlim([0, 21])
 plt.show()
 # %%

@@ -222,7 +222,7 @@ class playground:
             self.get_intersections()
             self.propagate_rays()
             i += 1
-        self.final_propagation()
+        # self.final_propagation()
         return
     
     def get_history(self):
